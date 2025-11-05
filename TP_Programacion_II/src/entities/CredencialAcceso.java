@@ -10,20 +10,21 @@ import java.time.LocalDateTime;
  *
  * @author lu
  */
-public class Usuario {
+public class CredencialAcceso {
     private Long id;
     private Boolean eliminado;
-    private String username;
+    private String hashPassword;
     private String salt;
     private java.time.LocalDateTime ultimoCambio;
     private Boolean rLocalDateTimeequireReset;
 
-    public Usuario() {
+    public CredencialAcceso() {
     }
 
-    public Usuario(Long id, Boolean eliminado, String salt, LocalDateTime ultimoCambio, Boolean rLocalDateTimeequireReset) {
+    public CredencialAcceso(Long id, Boolean eliminado, String hashPassword, String salt, LocalDateTime ultimoCambio, Boolean rLocalDateTimeequireReset) {
         this.id = id;
         this.eliminado = eliminado;
+        this.hashPassword = hashPassword;
         this.salt = salt;
         this.ultimoCambio = ultimoCambio;
         this.rLocalDateTimeequireReset = rLocalDateTimeequireReset;
@@ -45,12 +46,12 @@ public class Usuario {
         this.eliminado = eliminado;
     }
 
-    public String getUsername() {
-        return username;
+    public String getHashPassword() {
+        return hashPassword;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setHashPassword(String hashPassword) {
+        this.hashPassword = hashPassword;
     }
 
     public String getSalt() {
@@ -78,7 +79,5 @@ public class Usuario {
     }
 
 
-    
-    
-    
+
 }
