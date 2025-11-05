@@ -13,7 +13,9 @@ import java.sql.Timestamp;
  * @author Frappo
  */
 public class Transactions {
-
+    
+// Falta setAutoCommit(false)
+    
     private Connection conn;
 
     public Transactions(Connection conn) {

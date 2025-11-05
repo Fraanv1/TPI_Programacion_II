@@ -10,21 +10,23 @@ import java.time.LocalDateTime;
  *
  * @author lu
  */
-public class CredencialAcceso {
+public class Usuario {
     private Long id;
     private Boolean eliminado;
+    private String username;
     private String email;
     private Boolean activo;
     private java.time.LocalDateTime fechaRegistro;
-    
     private CredencialAcceso credencial;
-
-    public CredencialAcceso() {
+    
+    public Usuario() {
+        
     }
 
-    public CredencialAcceso(Long id, Boolean eliminado, String email, Boolean activo, LocalDateTime fechaRegistro, CredencialAcceso credencial) {
+    public Usuario(Long id, Boolean eliminado, String username, String email, Boolean activo, LocalDateTime fechaRegistro, CredencialAcceso credencial) {
         this.id = id;
         this.eliminado = eliminado;
+        this.username = username;
         this.email = email;
         this.activo = activo;
         this.fechaRegistro = fechaRegistro;
@@ -45,6 +47,14 @@ public class CredencialAcceso {
 
     public void setEliminado(Boolean eliminado) {
         this.eliminado = eliminado;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getEmail() {
@@ -78,7 +88,7 @@ public class CredencialAcceso {
     public void setCredencial(CredencialAcceso credencial) {
         this.credencial = credencial;
     }
-    
-    
+
+
     
 }
