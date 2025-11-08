@@ -10,9 +10,7 @@ import java.time.LocalDateTime;
  *
  * @author lu
  */
-public class Usuario {
-    private Long id;
-    private Boolean eliminado;
+public class Usuario extends Base {
     private String username;
     private String email;
     private Boolean activo;
@@ -20,33 +18,16 @@ public class Usuario {
     private CredencialAcceso credencial;
     
     public Usuario() {
-        
+        super();
     }
 
-    public Usuario(Long id, Boolean eliminado, String username, String email, Boolean activo, LocalDateTime fechaRegistro, CredencialAcceso credencial) {
-        this.id = id;
-        this.eliminado = eliminado;
+    public Usuario(Long id, String username, String email, Boolean activo, LocalDateTime fechaRegistro, CredencialAcceso credencial) {
+        super(id, false);
         this.username = username;
         this.email = email;
         this.activo = activo;
         this.fechaRegistro = fechaRegistro;
         this.credencial = credencial;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Boolean getEliminado() {
-        return eliminado;
-    }
-
-    public void setEliminado(Boolean eliminado) {
-        this.eliminado = eliminado;
     }
 
     public String getUsername() {
@@ -89,6 +70,9 @@ public class Usuario {
         this.credencial = credencial;
     }
 
-
+    @Override
+    public String toString() {
+        return "Usuario{" + "id=" + getId() +", eliminado=" + isEliminado() + ", username=" + username + ", email=" + email + ", activo=" + activo + ", fechaRegistro=" + fechaRegistro + ", credencial=" + credencial + '}';
+    }
     
 }
