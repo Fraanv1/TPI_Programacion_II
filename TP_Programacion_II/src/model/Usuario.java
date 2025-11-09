@@ -26,7 +26,7 @@ public class Usuario extends Base {
         this.username = username;
         this.email = email;
         this.activo = activo;
-        this.fechaRegistro = fechaRegistro;
+        this.fechaRegistro = LocalDateTime.now();;
         this.credencial = credencial;
     }
 
@@ -46,7 +46,7 @@ public class Usuario extends Base {
         this.email = email;
     }
 
-    public Boolean getActivo() {
+    public Boolean isActivo() {
         return activo;
     }
 

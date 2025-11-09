@@ -14,18 +14,18 @@ public class CredencialAcceso extends Base {
     private String hashPassword;
     private String salt;
     private java.time.LocalDateTime ultimoCambio;
-    private Boolean rLocalDateTimeequireReset;
+    private Boolean requireReset;
 
     public CredencialAcceso() {
         super();
     }
 
-    public CredencialAcceso(Long id, String hashPassword, String salt, LocalDateTime ultimoCambio, Boolean rLocalDateTimeequireReset) {
+    public CredencialAcceso(Long id, String hashPassword, String salt, LocalDateTime ultimoCambio, Boolean requireReset) {
         super(id, false);
         this.hashPassword = hashPassword;
         this.salt = salt;
-        this.ultimoCambio = ultimoCambio;
-        this.rLocalDateTimeequireReset = rLocalDateTimeequireReset;
+        this.ultimoCambio = LocalDateTime.now();
+        this.requireReset = requireReset;
     }
 
     public String getHashPassword() {
@@ -52,17 +52,17 @@ public class CredencialAcceso extends Base {
         this.ultimoCambio = ultimoCambio;
     }
 
-    public Boolean getrLocalDateTimeequireReset() {
-        return rLocalDateTimeequireReset;
+    public Boolean getRequireReset() {
+        return requireReset;
     }
 
-    public void setrLocalDateTimeequireReset(Boolean rLocalDateTimeequireReset) {
-        this.rLocalDateTimeequireReset = rLocalDateTimeequireReset;
+    public void setRequireReset(Boolean requireReset) {
+        this.requireReset = requireReset;
     }
 
     @Override
     public String toString() {
-        return "CredencialAcceso{" + "id=" + super.getId() +", eliminado=" + super.isEliminado() +  ", hashPassword=" + hashPassword + ", salt=" + salt + ", ultimoCambio=" + ultimoCambio + ", rLocalDateTimeequireReset=" + rLocalDateTimeequireReset + '}';
+        return "CredencialAcceso{" + "id=" + super.getId() +", eliminado=" + super.isEliminado() +  ", hashPassword=" + hashPassword + ", salt=" + salt + ", ultimoCambio=" + ultimoCambio + ", requireReset=" + requireReset + '}';
     }
 
 }
