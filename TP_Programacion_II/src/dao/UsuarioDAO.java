@@ -5,12 +5,7 @@
 package dao;
 
 import config.DatabaseConnection;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +13,9 @@ import model.CredencialAcceso;
 import model.Usuario;
 
 /**
+ * **Data Access Object (DAO) para la entidad Usuario.**
+ * Implementa las operaciones CRUD y métodos de búsqueda específicos.
+ * Gestiona la persistencia de objetos Usuario en la tabla 'usuarios'.
  *
  * @author soilu
  */
@@ -26,8 +24,8 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     private static final String INSERT_SQL = "INSERT INTO usuarios (username, email, credencial_id) VALUES (?, ?, ?)";
 
     /**
-     * Query de actualización de persona. Actualiza nombre, apellido, dni y FK
-     * domicilio_id por id. NO actualiza el flag eliminado (solo se modifica en
+     * Query de actualización de **Usuario**. Actualiza username, email, estado activo y FK
+     * credencial_id por id. NO actualiza el flag eliminado (solo se modifica en
      * soft delete).
      */
     private static final String UPDATE_SQL = "UPDATE usuarios SET username = ?, email = ?, activo = ?, credencial_id = ? WHERE id = ?";
@@ -39,12 +37,13 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     private static final String DELETE_SQL = "UPDATE usuarios SET eliminado = TRUE WHERE id = ?";
 
     /**
-     * Query para obtener persona por ID. LEFT JOIN con domicilios para cargar
-     * la relación de forma eager. Solo retorna personas activas
+     * Query para obtener **Usuario** por ID. LEFT JOIN con credencial_acceso para cargar
+     * la relación de forma eager. Solo retorna usuarios activos
      * (eliminado=FALSE).
      *
-     * Campos del ResultSet: - Persona: id, nombre, apellido, dni, domicilio_id
-     * - Domicilio (puede ser NULL): dom_id, calle, numero
+     * Campos del ResultSet:
+     * - Usuario: id, username, email, activo, fechaRegistro
+     * - CredencialAcceso (puede ser NULL): credencial_id, hashPassword, salt, ultimoCambio, requireReset
      */
     private static final String SELECT_BY_ID_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, "
             + "c_a.id AS credencial_id, c_a.hashPassword, c_a.salt, c_a.ultimoCambio, c_a.requireReset "
@@ -52,9 +51,9 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
             + "WHERE u.id = ? AND u.eliminado = FALSE";
 
     /**
-     * Query para obtener todas las personas activas. LEFT JOIN con domicilios
-     * para cargar relaciones. Filtra por eliminado=FALSE (solo personas
-     * activas).
+     * Query para obtener todos los **Usuarios** activos. LEFT JOIN con credencial_acceso
+     * para cargar relaciones. Filtra por eliminado=FALSE (solo usuarios
+     * activos).
      */
     private static final String SELECT_ALL_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, "
             + "c_a.id AS credencial_id, c_a.hashPassword, c_a.salt, c_a.ultimoCambio, c_a.requireReset "
@@ -62,20 +61,20 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
             + "WHERE u.eliminado = FALSE";
 
     /**
-     * Query de búsqueda por username  con LIKE. Permite búsqueda
-     * flexible: el usuario ingresa "juan" y encuentra "Juan", "Juana", etc. Usa
-     * % antes y después del filtro: LIKE '%filtro%' Solo personas activas
+     * Query de búsqueda por **username** con LIKE. Permite búsqueda
+     * flexible (ej: el usuario ingresa "juan" y encuentra "Juan", "Juana", etc.). Usa
+     * % antes y después del filtro: LIKE '%filtro%' Solo usuarios activos
      * (eliminado=FALSE).
      */
     private static final String SEARCH_BY_USERNAME_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, "
             + "c_a.id AS credencial_id, c_a.hashPassword, c_a.salt, c_a.ultimoCambio, c_a.requireReset "
             + "FROM usuarios u LEFT JOIN credencial_acceso as c_a ON u.credencial_id = c_a.id "
-            + "WHERE p.eliminado = FALSE AND u.username LIKE ?";
+            + "WHERE u.eliminado = FALSE AND u.username LIKE ?";
 
     /**
-     * Query de búsqueda exacta por EMAIL. Usa comparación exacta (=) porque el
-     * DNI es único (RN-001). Usado por PersonaServiceImpl.validateDniUnique()
-     * para verificar unicidad. Solo personas activas (eliminado=FALSE).
+     * Query de búsqueda exacta por **EMAIL**. Usa comparación exacta (=) porque el
+     * email debe ser único.
+     * Solo usuarios activos (eliminado=FALSE).
      */
     private static final String SEARCH_BY_EMAIL_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, "
             + "c_a.id AS credencial_id, c_a.hashPassword, c_a.salt, c_a.ultimoCambio, c_a.requireReset "
@@ -83,19 +82,18 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
             + "WHERE u.eliminado = FALSE AND u.email = ?";
 
     /**
-     * DAO de domicilios (actualmente no usado, pero disponible para operaciones
-     * futuras). Inyectado en el constructor por si se necesita coordinar
-     * operaciones.
+     * DAO de CredencialAcceso. Usado para operaciones que puedan requerir
+     * la coordinación de la persistencia de las credenciales.
      */
     private final CredencialAccesoDAO credencialAccesoDAO;
     
     
     /**
-     * Constructor con inyección de DomicilioDAO.
+     * Constructor con inyección de CredencialAccesoDAO.
      * Valida que la dependencia no sea null (fail-fast).
      *
-     * @param credencialAccesoDAO DAO de domicilios
-     * @throws IllegalArgumentException si domicilioDAO es null
+     * @param credencialAccesoDAO DAO de CredencialAcceso
+     * @throws IllegalArgumentException si credencialAccesoDAO es null
      */
     public UsuarioDAO(CredencialAccesoDAO credencialAccesoDAO) {
         if (credencialAccesoDAO == null) {
@@ -105,18 +103,18 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     }
     
         /**
-     * Inserta una persona en la base de datos (versión sin transacción).
+     * Inserta un **Usuario** en la base de datos (versión sin transacción).
      * Crea su propia conexión y la cierra automáticamente.
      *
      * Flujo:
      * 1. Abre conexión con DatabaseConnection.getConnection()
      * 2. Crea PreparedStatement con INSERT_SQL y RETURN_GENERATED_KEYS
-     * 3. Setea parámetros (nombre, apellido, dni, domicilio_id)
+     * 3. Setea parámetros (username, email, credencial_id)
      * 4. Ejecuta INSERT
-     * 5. Obtiene el ID autogenerado y lo asigna a persona.id
+     * 5. Obtiene el ID autogenerado y lo asigna a usuario.id
      * 6. Cierra recursos automáticamente (try-with-resources)
      *
-     * @param usuario Persona a insertar (id será ignorado y regenerado)
+     * @param usuario Usuario a insertar (id será ignorado y regenerado)
      * @throws Exception Si falla la inserción o no se obtiene ID generado
      */
     @Override
@@ -131,20 +129,20 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     }
 
     /**
-     * Inserta una persona dentro de una transacción existente.
+     * Inserta un **Usuario** dentro de una transacción existente.
      * NO crea nueva conexión, recibe una Connection externa.
      * NO cierra la conexión (responsabilidad del caller con TransactionManager).
      *
-     * Usado por: (Actualmente no usado, pero disponible para transacciones futuras)
-     * - Operaciones que requieren múltiples inserts coordinados
+     * Usado por:
+     * - Operaciones que requieren múltiples inserts coordinados (ej: Usuario + CredencialAcceso)
      * - Rollback automático si alguna operación falla
      *
-     * @param usuario Persona a insertar
+     * @param usuario Usuario a insertar
      * @param conn Conexión transaccional (NO se cierra en este método)
      * @throws Exception Si falla la inserción
      */
     @Override
-    public void insertTx(Usuario usuario, Connection conn) throws Exception {
+    public void insertarTx(Usuario usuario, Connection conn) throws Exception {
         try (PreparedStatement stmt = conn.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
             setUsuarioParameters(stmt, usuario);
             stmt.executeUpdate();
@@ -153,18 +151,18 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     }
 
     /**
-     * Actualiza una persona existente en la base de datos.
-     * Actualiza nombre, apellido, dni y FK domicilio_id.
+     * Actualiza un **Usuario** existente en la base de datos.
+     * Actualiza username, email, estado activo y FK credencial_id.
      *
      * Validaciones:
-     * - Si rowsAffected == 0 → La persona no existe o ya está eliminada
+     * - Si rowsAffected == 0 → El usuario no existe o ya está eliminado
      *
-     * IMPORTANTE: Este método puede cambiar la FK domicilio_id:
-     * - Si persona.domicilio == null → domicilio_id = NULL (desasociar)
-     * - Si persona.domicilio.id > 0 → domicilio_id = domicilio.id (asociar/cambiar)
+     * IMPORTANTE: Este método puede cambiar la FK credencial_id:
+     * - Si usuario.credencial == null → credencial_id = NULL (desasociar)
+     * - Si usuario.credencial.id > 0 → credencial_id = credencial.id (asociar/cambiar)
      *
-     * @param usuario Persona con los datos actualizados (id debe ser > 0)
-     * @throws SQLException Si la persona no existe o hay error de BD
+     * @param usuario Usuario con los datos actualizados (id debe ser > 0)
+     * @throws SQLException Si el usuario no existe o hay error de BD
      */
     @Override
     public void actualizar(Usuario usuario) throws Exception {
@@ -179,23 +177,46 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
 
             int rowsAffected = stmt.executeUpdate();
             if (rowsAffected == 0) {
-                throw new SQLException("No se pudo actualizar la persona con ID: " + usuario.getId());
+                throw new SQLException("No se pudo actualizar el usuario con ID: " + usuario.getId());
             }
         }
     }
+    
+        /**
+     * Actualiza un **Usuario** dentro de una transacción existente.
+     * NO crea ni cierra la conexión.
+     *
+     * @param usuario Usuario con los datos actualizados
+     * @param conn Conexión transaccional (NO se cierra en este método)
+     * @throws Exception Si falla la actualización
+     */
+    @Override
+    public void actualizarTx(Usuario usuario, Connection conn) throws Exception {
+        // Se usa la 'conn' que viene por parámetro, sin 'try-with-resources' para la conexión
+        try (PreparedStatement stmt = conn.prepareStatement(UPDATE_SQL)) {
 
+            stmt.setString(1, usuario.getUsername());
+            stmt.setString(2, usuario.getEmail());
+            stmt.setBoolean(3, usuario.isActivo());
+            setCredencialAccesoId(stmt, 4, usuario.getCredencial());
+            stmt.setLong(5, usuario.getId());
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new SQLException("No se pudo actualizar el usuario con ID: " + usuario.getId());
+            }
+        }
+    }
+    
     /**
-     * Elimina lógicamente una persona (soft delete).
+     * Elimina lógicamente un **Usuario** (soft delete).
      * Marca eliminado=TRUE sin borrar físicamente la fila.
      *
      * Validaciones:
-     * - Si rowsAffected == 0 → La persona no existe o ya está eliminada
+     * - Si rowsAffected == 0 → El usuario no existe o ya está eliminado
      *
-     * IMPORTANTE: NO elimina el domicilio asociado (correcto según RN-037).
-     * Múltiples personas pueden compartir un domicilio.
-     *
-     * @param id ID de la persona a eliminar
-     * @throws SQLException Si la persona no existe o hay error de BD
+     * @param id ID del usuario a eliminar
+     * @throws SQLException Si el usuario no existe o hay error de BD
      */
     @Override
     public void eliminar(long id) throws Exception {
@@ -210,13 +231,35 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
             }
         }
     }
+    
+        /**
+     * Elimina lógicamente un **Usuario** (soft delete) dentro de una transacción.
+     * NO crea ni cierra la conexión.
+     *
+     * @param id ID del usuario a eliminar
+     * @param conn Conexión transaccional (NO se cierra en este método)
+     * @throws Exception Si el usuario no existe o hay error de BD
+     */
+    @Override
+    public void eliminarTx(long id, Connection conn) throws Exception {
+        // Se usa la 'conn' que viene por parámetro
+        try (PreparedStatement stmt = conn.prepareStatement(DELETE_SQL)) {
+
+            stmt.setLong(1, id);
+            int rowsAffected = stmt.executeUpdate();
+
+            if (rowsAffected == 0) {
+                throw new SQLException("No se encontró usuario con ID: " + id);
+            }
+        }
+    }
 
     /**
-     * Obtiene una persona por su ID.
-     * Incluye su domicilio asociado mediante LEFT JOIN.
+     * Obtiene un **Usuario** por su ID.
+     * Incluye su CredencialAcceso asociado mediante LEFT JOIN.
      *
-     * @param id ID de la persona a buscar
-     * @return Persona encontrada con su domicilio, o null si no existe o está eliminada
+     * @param id ID del usuario a buscar
+     * @return Usuario encontrado con su credencial, o null si no existe o está eliminado
      * @throws Exception Si hay error de BD (captura SQLException y re-lanza con mensaje descriptivo)
      */
     @Override
@@ -238,12 +281,12 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     }
 
     /**
-     * Obtiene todas las personas activas (eliminado=FALSE).
-     * Incluye sus domicilios mediante LEFT JOIN.
+     * Obtiene todos los **Usuarios** activos (eliminado=FALSE).
+     * Incluye sus Credenciales de Acceso mediante LEFT JOIN.
      *
      * Nota: Usa Statement (no PreparedStatement) porque no hay parámetros.
      *
-     * @return Lista de personas activas con sus domicilios (puede estar vacía)
+     * @return Lista de usuarios activos con sus credenciales (puede estar vacía)
      * @throws Exception Si hay error de BD
      */
     @Override
@@ -263,56 +306,50 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
         return usuarios;
     }
 
-    /**
-     * Busca personas por nombre o apellido con búsqueda flexible (LIKE).
-     * Permite búsqueda parcial: "juan" encuentra "Juan", "María Juana", etc.
+ /**
+     * Busca un **Usuario** por **username** exacto.
+     * Usa comparación exacta (=) ya que el username es ÚNICO.
      *
-     * Patrón de búsqueda: LIKE '%filtro%' en nombre O apellido
-     * Búsqueda case-sensitive en MySQL (depende de la collation de la BD).
-     *
-     * Ejemplo:
-     * - filtro = "garcia" → Encuentra personas con nombre o apellido que contengan "garcia"
-     *
-     * @param filtro Texto a buscar (no puede estar vacío)
-     * @return Lista de personas que coinciden con el filtro (puede estar vacía)
-     * @throws IllegalArgumentException Si el filtro está vacío
+     * @param username Username exacto a buscar (no puede estar vacío)
+     * @return El Usuario encontrado, o null si no existe o está eliminado
+     * @throws IllegalArgumentException Si el username está vacío
      * @throws SQLException Si hay error de BD
      */
-    public List<Usuario> buscarPorUsername(String filtro) throws SQLException {
-        if (filtro == null || filtro.trim().isEmpty()) {
-            throw new IllegalArgumentException("El filtro de búsqueda no puede estar vacío");
+    public Usuario buscarPorUsername(String username) throws SQLException {
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("El username de búsqueda no puede estar vacío");
         }
-
-        List<Usuario> usuarios = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(SEARCH_BY_USERNAME_SQL)) {
 
-            // Construye el patrón LIKE: %filtro%
-            String searchPattern = "%" + filtro + "%";
-            stmt.setString(1, searchPattern);
-            stmt.setString(2, searchPattern);
+            // Seteamos el username exacto
+            stmt.setString(1, username.trim());
 
             try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    usuarios.add(mapResultSetToUsuario(rs));
+                // Si encontramos un resultado (debe ser único)
+                if (rs.next()) {
+                    // Mapeamos y devolvemos el usuario
+                    return mapResultSetToUsuario(rs);
                 }
             }
         }
-        return usuarios;
+        
+        // Si no se encontró ningún usuario con ese username
+        return null;
     }
 
     /**
-     * Busca una persona por DNI exacto.
-     * Usa comparación exacta (=) porque el DNI es único en el sistema (RN-001).
+     * Busca un **Usuario** por **EMAIL** exacto.
+     * Usa comparación exacta (=) ya que el email debe ser único.
      *
      * Uso típico:
-     * - PersonaServiceImpl.validateDniUnique() para verificar que el DNI no esté duplicado
-     * - MenuHandler opción 4 para buscar persona específica por DNI
+     * - Validar que el email no esté duplicado
+     * - Buscar un usuario específico para login
      *
-     * @param email DNI exacto a buscar (se aplica trim automáticamente)
-     * @return Persona con ese DNI, o null si no existe o está eliminada
-     * @throws IllegalArgumentException Si el DNI está vacío
+     * @param email Email exacto a buscar (se aplica trim automáticamente)
+     * @return Usuario con ese email, o null si no existe o está eliminado
+     * @throws IllegalArgumentException Si el email está vacío
      * @throws SQLException Si hay error de BD
      */
     public Usuario buscarPorEmail(String email) throws SQLException {
@@ -335,17 +372,16 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     }
 
     /**
-     * Setea los parámetros de persona en un PreparedStatement.
+     * Setea los parámetros de **Usuario** en un PreparedStatement.
      * Método auxiliar usado por insertar() e insertTx().
      *
      * Parámetros seteados:
-     * 1. nombre (String)
-     * 2. apellido (String)
-     * 3. dni (String)
-     * 4. domicilio_id (Integer o NULL)
+     * 1. username (String)
+     * 2. email (String)
+     * 3. credencial_id (Integer o NULL)
      *
      * @param stmt PreparedStatement con INSERT_SQL
-     * @param usuario Persona con los datos a insertar
+     * @param usuario Usuario con los datos a insertar
      * @throws SQLException Si hay error al setear parámetros
      */
     private void setUsuarioParameters(PreparedStatement stmt, Usuario usuario) throws SQLException {
@@ -355,18 +391,18 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     }
 
     /**
-     * Setea la FK domicilio_id en un PreparedStatement.
-     * Maneja correctamente el caso NULL (persona sin domicilio).
+     * Setea la FK credencial_id en un PreparedStatement.
+     * Maneja correctamente el caso NULL (usuario sin credencial asociada).
      *
      * Lógica:
-     * - Si domicilio != null Y domicilio.id > 0 → Setea el ID
-     * - Si domicilio == null O domicilio.id <= 0 → Setea NULL
+     * - Si credencial != null Y credencial.id > 0 → Setea el ID
+     * - Si credencial == null O credencial.id <= 0 → Setea NULL
      *
      * Importante: El tipo Types.INTEGER es necesario para setNull() en JDBC.
      *
      * @param stmt PreparedStatement
      * @param parameterIndex Índice del parámetro (1-based)
-     * @param credencial Domicilio asociado (puede ser null)
+     * @param credencial CredencialAcceso asociada (puede ser null)
      * @throws SQLException Si hay error al setear el parámetro
      */
     private void setCredencialAccesoId(PreparedStatement stmt, int parameterIndex, CredencialAcceso credencial) throws SQLException {
@@ -379,15 +415,15 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
 
     /**
      * Obtiene el ID autogenerado por la BD después de un INSERT.
-     * Asigna el ID generado al objeto persona.
+     * Asigna el ID generado al objeto usuario.
      *
      * IMPORTANTE: Este método es crítico para mantener la consistencia:
-     * - Después de insertar, el objeto persona debe tener su ID real de la BD
-     * - Permite usar persona.getId() inmediatamente después de insertar
+     * - Después de insertar, el objeto usuario debe tener su ID real de la BD
+     * - Permite usar usuario.getId() inmediatamente después de insertar
      * - Necesario para operaciones transaccionales que requieren el ID generado
      *
      * @param stmt PreparedStatement que ejecutó el INSERT con RETURN_GENERATED_KEYS
-     * @param usuario Objeto persona a actualizar con el ID generado
+     * @param usuario Objeto usuario a actualizar con el ID generado
      * @throws SQLException Si no se pudo obtener el ID generado (indica problema grave)
      */
     private void setGeneratedId(PreparedStatement stmt, Usuario usuario) throws SQLException {
@@ -395,33 +431,31 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
             if (generatedKeys.next()) {
                 usuario.setId(generatedKeys.getLong(1));
             } else {
-                throw new SQLException("La inserción de la persona falló, no se obtuvo ID generado");
+                throw new SQLException("La inserción del usuario falló, no se obtuvo ID generado");
             }
         }
     }
 
     /**
-     * Mapea un ResultSet a un objeto Persona.
-     * Reconstruye la relación con Domicilio usando LEFT JOIN.
+     * Mapea un ResultSet a un objeto **Usuario**.
+     * Reconstruye la relación con **CredencialAcceso** usando LEFT JOIN.
      *
      * Mapeo de columnas:
-     * Persona:
-     * - id → p.id
-     * - nombre → p.nombre
-     * - apellido → p.apellido
-     * - dni → p.dni
+     * Usuario:
+     * - id → u.id
+     * - username → u.username
+     * - email → u.email
+     * - activo → u.activo
      *
-     * Domicilio (puede ser NULL si la persona no tiene domicilio):
-     * - id → d.id AS dom_id
-     * - calle → d.calle
-     * - numero → d.numero
+     * CredencialAcceso (puede ser NULL si el usuario no tiene credencial):
+     * - id → c_a.id AS credencial_id
+     * - hashPassword → c_a.hashPassword
+     * - salt → c_a.salt
+     * - requireReset → c_a.requireReset
+     * - ultimoCambio → c_a.ultimoCambio
      *
-     * Lógica de NULL en LEFT JOIN:
-     * - Si domicilio_id es NULL → persona.domicilio = null (correcto)
-     * - Si domicilio_id > 0 → Se crea objeto Domicilio y se asigna a persona
-     *
-     * @param rs ResultSet posicionado en una fila con datos de persona y domicilio
-     * @return Persona reconstruida con su domicilio (si tiene)
+     * @param rs ResultSet posicionado en una fila con datos de usuario y credencial
+     * @return Usuario reconstruido con su credencial (si tiene)
      * @throws SQLException Si hay error al leer columnas del ResultSet
      */
     private Usuario mapResultSetToUsuario(ResultSet rs) throws SQLException {
@@ -430,16 +464,18 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
         usuario.setUsername(rs.getString("username"));
         usuario.setEmail(rs.getString("email"));
         usuario.setActivo(rs.getBoolean("activo"));
+        usuario.setFechaRegistro(rs.getObject("fechaRegistro", LocalDateTime.class)); // Agregado mapeo de fechaRegistro
 
-        // Manejo correcto de LEFT JOIN: verificar si domicilio_id es NULL
-        int credencialAccesoId = rs.getInt("credencial_id");
-        if (credencialAccesoId > 0 && !rs.wasNull()) {
+        // Manejo correcto de LEFT JOIN: verificar si credencial_id es NULL
+        long credencialAccesoId = rs.getLong("credencial_id");
+        if (!rs.wasNull()) { // Si credencial_id es un valor real (no NULL)
             CredencialAcceso credencial = new CredencialAcceso();
-            credencial.setId(rs.getLong("id"));
+            credencial.setId(credencialAccesoId);
             credencial.setHashPassword(rs.getString("hashPassword"));
             credencial.setSalt(rs.getString("salt"));
             credencial.setRequireReset(rs.getBoolean("requireReset"));
-            credencial.setUltimoCambio(LocalDateTime.now());
+            // La columna ultimoCambio es de tipo DATETIME en la BD
+            credencial.setUltimoCambio(rs.getObject("ultimoCambio", LocalDateTime.class)); 
             usuario.setCredencial(credencial);
         }
 

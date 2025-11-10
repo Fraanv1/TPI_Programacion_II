@@ -16,7 +16,7 @@ INSERT INTO temp_nombres(nombre) WITH RECURSIVE nombres AS (
     CONCAT('nombre', LPAD(n + 1, 3, '0'))  -- Rellena con ceros a la izquierda hasta 3 dígitos y Creamos el nombre
 
     FROM nombres
-    WHERE n < 100           -- Condición de parada: hasta 100, contando que el caso base es 1, y por eso no es <=
+    WHERE n < 10           -- Condición de parada: hasta 10, contando que el caso base es 1, y por eso no es <=
 ) SELECT nombre FROM nombres;
 
 
@@ -39,7 +39,7 @@ INSERT INTO temp_apellidos(apellido) WITH RECURSIVE apellidos AS (
     CONCAT('ape', LPAD(n + 1, 3, '0'))  -- Rellena con ceros a la izquierda hasta 3 dígitos y Creamos el apellido
 
     FROM apellidos
-    WHERE n < 100           -- Condición de parada: hasta 100, contando que el caso base es 1, y por eso no es <=
+    WHERE n < 10          -- Condición de parada: hasta 100, contando que el caso base es 1, y por eso no es <=
 ) SELECT apellido FROM apellidos;
 
 
@@ -60,7 +60,7 @@ INSERT INTO temp_numeros(num) WITH RECURSIVE numeros AS (
     n + 1
 
     FROM numeros
-    WHERE n < 30           -- Condición de parada: hasta 30, contando que el caso base es 1, y por eso no es <=
+    WHERE n < 10           -- Condición de parada: hasta 10, contando que el caso base es 1, y por eso no es <=
 ) SELECT n FROM numeros;
 
 
@@ -85,7 +85,7 @@ INSERT INTO credencial_acceso(hashPassword, salt, ultimoCambio, requireReset) WI
     IF(RAND() < 0.1, 1, 0)
     
     FROM datos_credenciales
-    WHERE n < 300000
+    WHERE n < 1000
 ) SELECT hashPass, sal, fecha, requiereReset FROM datos_credenciales;
 
 -- Creamos los usuarios
@@ -96,7 +96,7 @@ SELECT
     CONCAT(temp_nombres.nombre, '_', temp_apellidos.apellido, '_', temp_numeros.num, IF(RAND(10) < 0.5, '@gmail.com', '@hotmail.com')),
     IF(RAND() < 0.1, 1, 0) as activo,
     DATE_SUB(CURDATE(), INTERVAL FLOOR(RAND() * 2000) DAY) as fecha,
-    ROW_NUMBER() OVER () + 1 as credencial_id	-- Al ya tener un usuario generado en el archivo "01_esquema", tuve que agregarle un + 1 para que funcione correctamente 
+    ROW_NUMBER() OVER () as credencial_id
 FROM temp_nombres
 CROSS JOIN temp_apellidos  
 CROSS JOIN temp_numeros;
