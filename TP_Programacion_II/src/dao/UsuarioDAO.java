@@ -61,15 +61,13 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
             + "WHERE u.eliminado = FALSE";
 
     /**
-     * Query de búsqueda por **username** con LIKE. Permite búsqueda
-     * flexible (ej: el usuario ingresa "juan" y encuentra "Juan", "Juana", etc.). Usa
-     * % antes y después del filtro: LIKE '%filtro%' Solo usuarios activos
+     * Query de búsqueda por **username** con . Permite búsqueda solo con usuarios no eliminados
      * (eliminado=FALSE).
      */
     private static final String SEARCH_BY_USERNAME_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, "
             + "c_a.id AS credencial_id, c_a.hashPassword, c_a.salt, c_a.ultimoCambio, c_a.requireReset "
             + "FROM usuarios u LEFT JOIN credencial_acceso as c_a ON u.credencial_id = c_a.id "
-            + "WHERE u.eliminado = FALSE AND u.username LIKE ?";
+            + "WHERE u.eliminado = FALSE AND u.username = ?";
 
     /**
      * Query de búsqueda exacta por **EMAIL**. Usa comparación exacta (=) porque el
@@ -81,6 +79,9 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
             + "FROM usuarios u LEFT JOIN credencial_acceso as c_a ON u.credencial_id = c_a.id "
             + "WHERE u.eliminado = FALSE AND u.email = ?";
 
+    
+    private static final String RECOVER_SQL = "UPDATE usuarios SET eliminado = FALSE WHERE id = ?";
+    
     /**
      * DAO de CredencialAcceso. Usado para operaciones que puedan requerir
      * la coordinación de la persistencia de las credenciales.
@@ -242,7 +243,7 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
      */
     @Override
     public void eliminarTx(long id, Connection conn) throws Exception {
-        // Se usa la 'conn' que viene por parámetro
+        // Se usa la conn que viene por parámetro
         try (PreparedStatement stmt = conn.prepareStatement(DELETE_SQL)) {
 
             stmt.setLong(1, id);
@@ -254,6 +255,51 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
         }
     }
 
+    /**
+     * Recupera lógicamente un usuario
+     * Marca eliminado=FALSE
+     *
+     * Validaciones: - Si rowsAffected == 0 → El usuario no existe o no está eliminado
+     *
+     * @param id ID del usuario a recuperar
+     * @throws SQLException Si el usuario no existe o hay error de BD
+     */
+    @Override
+    public void recuperar(long id) throws Exception {
+        try (Connection conn = DatabaseConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(RECOVER_SQL)) {
+
+            stmt.setLong(1, id);
+            int rowsAffected = stmt.executeUpdate();
+
+            if (rowsAffected == 0) {
+                throw new SQLException("No se encontró usuario con ID: " + id);
+            }
+        }
+    }
+    
+    /**
+     * Recupera lógicamente un Usuario dentro de una
+     * transacción. NO crea ni cierra la conexión.
+     *
+     * @param id ID del usuario a recuperar
+     * @param conn Conexión transaccional (NO se cierra en este método)
+     * @throws Exception Si el usuario no existe o hay error de BD
+     */
+    @Override
+    public void recuperarTx(long id, Connection conn) throws Exception {
+        // Se usa la conn que viene por parámetro
+        try (PreparedStatement stmt = conn.prepareStatement(RECOVER_SQL)) {
+
+            stmt.setLong(1, id);
+            int rowsAffected = stmt.executeUpdate();
+
+            if (rowsAffected == 0) {
+                throw new SQLException("No se encontró usuario con ID: " + id);
+            }
+        }
+    }
+    
+    
     /**
      * Obtiene un **Usuario** por su ID.
      * Incluye su CredencialAcceso asociado mediante LEFT JOIN.
@@ -315,6 +361,8 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
      * @throws IllegalArgumentException Si el username está vacío
      * @throws SQLException Si hay error de BD
      */
+    
+    
     public Usuario buscarPorUsername(String username) throws SQLException {
         if (username == null || username.trim().isEmpty()) {
             throw new IllegalArgumentException("El username de búsqueda no puede estar vacío");

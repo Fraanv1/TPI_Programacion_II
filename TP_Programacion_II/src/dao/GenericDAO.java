@@ -22,6 +22,9 @@ public interface GenericDAO<T> {
     void eliminar(long id) throws Exception;
     void eliminarTx(long id, Connection conn) throws Exception;
     
+    void recuperar(long id) throws Exception;
+    void recuperarTx(long id, Connection conn) throws Exception;
+    
     T getById(long id) throws Exception;
 
     List<T> getAll() throws Exception;
