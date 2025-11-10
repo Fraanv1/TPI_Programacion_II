@@ -8,7 +8,6 @@ import config.DatabaseConnection;
 import dao.UsuarioDAO;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.List;
 import model.CredencialAcceso;
 import model.Usuario;
@@ -79,8 +78,8 @@ public class UsuarioService implements GenericService<Usuario> {
     @Override
     public void insertar(Usuario usuario) throws Exception {
         validateUsuario(usuario);
-        validateUsernameUnique(usuario.getUsername(), null); 
-        validateEmailUnique(usuario.getEmail(), null); 
+        validateUsername(usuario.getUsername(), null); 
+        validateEmail(usuario.getEmail(), null); 
 
         Connection conn = null; 
         try {
@@ -88,8 +87,6 @@ public class UsuarioService implements GenericService<Usuario> {
             conn.setAutoCommit(false); 
 
             CredencialAcceso cred = usuario.getCredencial();
-            // Actualizamos el último cambio
-            cred.setUltimoCambio(LocalDateTime.now()); 
             
             credencialAccesoService.insertarTx(cred, conn);
 
@@ -131,8 +128,8 @@ public class UsuarioService implements GenericService<Usuario> {
         if (usuario.getId() <= 0) {
             throw new IllegalArgumentException("El ID del usuario debe ser mayor a 0 para actualizar");
         }
-        validateUsernameUnique(usuario.getUsername(), usuario.getId()); 
-        validateEmailUnique(usuario.getEmail(), usuario.getId()); 
+        validateUsername(usuario.getUsername(), usuario.getId()); 
+        validateEmail(usuario.getEmail(), usuario.getId()); 
 
         Connection conn = null;
         try {
@@ -141,7 +138,6 @@ public class UsuarioService implements GenericService<Usuario> {
 
             CredencialAcceso cred = usuario.getCredencial();
             if (cred != null) {
-                cred.setUltimoCambio(LocalDateTime.now());
                 credencialAccesoService.actualizarTx(cred, conn); 
             }
 
@@ -211,6 +207,60 @@ public class UsuarioService implements GenericService<Usuario> {
             }
         }
     }
+    
+    /**
+     * Recupera un Usuario y su CredencialAcceso de forma
+     * transaccional.
+     *
+     * Flujo Transaccional: 1. **Inicia Transacción.** 2. Obtiene el Usuario
+     * (para saber qué CredencialAcceso recuperar). 3. Recupera el
+     * Usuario. 4. Recupera la CredencialAcceso asociada. 5.
+     * **Commit** o **Rollback**.
+     *
+     * @param id ID del usuario a eliminar
+     * @throws Exception Si el ID no existe o hay un error de BD.
+     */
+@Override
+    public void recuperar(long id) throws Exception {
+        if (id <= 0) {
+            throw new IllegalArgumentException("El ID debe ser mayor a 0");
+        }
+
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
+
+            // Esto hace que 'eliminado' vuelva a ser FALSE
+            usuarioDAO.recuperarTx(id, conn);
+
+            // Lo buscamos para saber qué credencial debemos recuperar, antes no lo podiamos hacer ya que getById() solo busca usuarios con 'eliminado = false'
+            Usuario usuario = usuarioDAO.getById(id); 
+            
+            if (usuario == null) {
+                // Si sigue siendo null, significa que el ID nunca existió
+                throw new SQLException("No se encontró usuario con ID: " + id);
+            }
+
+            // Recupera la credencial del usuario
+            if (usuario.getCredencial() != null) {
+                credencialAccesoService.recuperarTx(usuario.getCredencial().getId(), conn);
+            }
+
+            conn.commit();
+
+        } catch (Exception e) {
+            if (conn != null) {
+                conn.rollback();
+            }
+            throw new Exception("Error transaccional al recuperar usuario: " + e.getMessage(), e);
+        } finally {
+            if (conn != null) {
+                conn.setAutoCommit(true);
+                conn.close();
+            }
+        }
+    }
 
     @Override
     public Usuario getById(long id) throws Exception {
@@ -265,32 +315,39 @@ public class UsuarioService implements GenericService<Usuario> {
     }
 
     /**
-     * Valida la unicidad del Email (RN).
+     * Valida la unicidad del Email, y si tiene menos de 120 caracteres.
      *
      * @param email Email a validar
      * @param usuarioId ID del usuario (null para INSERT, ID para UPDATE)
      * @throws Exception Si el email ya pertenece a OTRO usuario.
      */
-    private void validateEmailUnique(String email, Long usuarioId) throws Exception {
+    private void validateEmail(String email, Long usuarioId) throws Exception {
         Usuario existente = usuarioDAO.buscarPorEmail(email);
 
         if (existente != null && (usuarioId == null || !existente.getId().equals(usuarioId))) {
             throw new IllegalArgumentException("Ya existe un usuario con el email: " + email);
         }
+        if (email.length() > 120) {
+            throw new IllegalArgumentException("El email no puede tener mas de 120 caracteres");
+        }
     }
 
     /**
-     * Valida la unicidad del Username (RN).
+     * Valida la unicidad del Username y su longitud.
      *
      * @param username Username a validar
      * @param usuarioId ID del usuario (null para INSERT, ID para UPDATE)
-     * @throws Exception Si el username ya pertenece a OTRO usuario.
+     * @throws Exception Si el username ya pertenece a OTRO usuario O tiene mas de 30 caracteres.
      */
-    private void validateUsernameUnique(String username, Long usuarioId) throws Exception {
+    private void validateUsername(String username, Long usuarioId) throws Exception {
         Usuario existente = usuarioDAO.buscarPorUsername(username);
         
         if (existente != null && (usuarioId == null || !existente.getId().equals(usuarioId))) {
             throw new IllegalArgumentException("Ya existe un usuario con el username: " + username);
+        }
+        
+        if (username.length() > 30) {
+            throw new IllegalArgumentException("El username no puede tener mas de 30 caracteres");
         }
     }
 }

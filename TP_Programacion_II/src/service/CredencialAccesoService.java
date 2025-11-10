@@ -7,6 +7,7 @@ package service;
 // Importar la conexión para los métodos transaccionales
 import java.sql.Connection; 
 import dao.CredencialAccesoDAO; // Importar el DAO concreto
+import java.time.LocalDateTime;
 import java.util.List;
 import model.CredencialAcceso;
 
@@ -56,6 +57,7 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
     @Override
     public void insertar(CredencialAcceso credencial) throws Exception {
         validateCredencial(credencial);
+        credencial.setUltimoCambio(LocalDateTime.now());
         credencialAccesoDAO.insertar(credencial);
     }
 
@@ -72,6 +74,7 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
         if (credencial.getId() <= 0) {
             throw new IllegalArgumentException("El ID de la credencial debe ser mayor a 0 para actualizar");
         }
+        credencial.setUltimoCambio(LocalDateTime.now());
         credencialAccesoDAO.actualizar(credencial);
     }
 
@@ -88,6 +91,21 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
             throw new IllegalArgumentException("El ID debe ser mayor a 0");
         }
         credencialAccesoDAO.eliminar(id);
+    }
+    
+    /**
+     * Recupera una credencial (versión no transaccional). Este método abre y
+     * cierra su propia conexión.
+     *
+     * @param id ID de la credencial a recuperar
+     * @throws Exception Si id <= 0 o no existe la credencial
+     */
+    @Override
+    public void recuperar(long id) throws Exception {
+        if (id <= 0) {
+            throw new IllegalArgumentException("El ID debe ser mayor a 0");
+        }
+        credencialAccesoDAO.recuperar(id);
     }
 
     /**
@@ -134,6 +152,7 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
      */
     public void insertarTx(CredencialAcceso credencial, Connection conn) throws Exception {
         validateCredencial(credencial);
+        credencial.setUltimoCambio(LocalDateTime.now()); 
         credencialAccesoDAO.insertarTx(credencial, conn);
     }
 
@@ -150,6 +169,7 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
         if (credencial.getId() <= 0) {
             throw new IllegalArgumentException("El ID de la credencial debe ser mayor a 0 para actualizar");
         }
+        credencial.setUltimoCambio(LocalDateTime.now()); 
         credencialAccesoDAO.actualizarTx(credencial, conn);
     }
 
@@ -166,6 +186,21 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
             throw new IllegalArgumentException("El ID debe ser mayor a 0");
         }
         credencialAccesoDAO.eliminarTx(id, conn);
+    }
+    
+    /**
+     * Recupera una credencial DENTRO de una transacción existente.
+     * No abre ni cierra la conexión. Delega en el método Tx del DAO.
+     *
+     * @param id ID de la credencial a recuperar
+     * @param conn Conexión transaccional
+     * @throws Exception Si el ID es inválido o error de BD
+     */
+    public void recuperarTx(long id, Connection conn) throws Exception {
+        if (id <= 0) {
+            throw new IllegalArgumentException("El ID debe ser mayor a 0");
+        }
+        credencialAccesoDAO.recuperarTx(id, conn);
     }
 
     // =========================================================================
@@ -185,8 +220,14 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
         if (credencial.getHashPassword() == null || credencial.getHashPassword().trim().isEmpty()) {
             throw new IllegalArgumentException("El hashPassword no puede estar vacío");
         }
+        if (credencial.getHashPassword().length() > 255) {
+            throw new IllegalArgumentException("El hashPassword no puede tener mas de 255 caracteres");
+        }
         if (credencial.getSalt() == null || credencial.getSalt().trim().isEmpty()) {
             throw new IllegalArgumentException("El salt no puede estar vacío");
+        }
+        if (credencial.getSalt().length() > 64) {
+            throw new IllegalArgumentException("El salt no puede tener mas de 64 caracteres");
         }
     }
 

@@ -39,7 +39,7 @@ public class CredencialAccesoDAO implements GenericDAO<CredencialAcceso> {
      * El id es AUTO_INCREMENT y se obtiene con RETURN_GENERATED_KEYS.
      * El campo eliminado tiene DEFAULT FALSE en la BD.
      */
-    private static final String INSERT_SQL = "INSERT INTO credencial_acceso (hashPassword, salt, requireReset) VALUES (?, ?, ?)";
+    private static final String INSERT_SQL = "INSERT INTO credencial_acceso (hashPassword, salt, ultimoCambio, requireReset) VALUES (?, ?, ?, ?)";
 
     /**
      * Query de actualización de credencial de acceso.
@@ -77,6 +77,9 @@ public class CredencialAccesoDAO implements GenericDAO<CredencialAcceso> {
      */
     private static final String SELECT_ALL_SQL = "SELECT * FROM credencial_acceso WHERE eliminado = FALSE";
 
+    
+    private static final String RECOVER_SQL = "UPDATE credencial_acceso SET eliminado = FALSE WHERE id = ?";
+    
     /**
      * Inserta una credencial en la base de datos (versión sin transacción).
      * Crea su propia conexión y la cierra automáticamente.
@@ -231,6 +234,52 @@ public class CredencialAccesoDAO implements GenericDAO<CredencialAcceso> {
         }
     }
     
+        /**
+     * RECUPERA lógicamente una credencial (soft delete).
+     * Marca eliminado=FALSE .
+     *
+     * Validaciones:
+     * - Si rowsAffected == 0 → La credencial no existe o no está eliminada
+     *
+     * @param id ID de la credencial a recuperar (tipo long)
+     * @throws SQLException Si la credencial no existe o hay error de BD
+     */
+    @Override
+    public void recuperar(long id) throws Exception {
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(RECOVER_SQL)) {
+
+            stmt.setLong(1, id);
+            int rowsAffected = stmt.executeUpdate();
+
+            if (rowsAffected == 0) {
+                throw new SQLException("No se encontró credencial con ID: " + id);
+            }
+        }
+    }
+
+        /**
+     * Recupera lógicamente una credencial dentro de una transacción.
+     * NO crea ni cierra la conexión.
+     *
+     * @param id ID de la credencial a recuperar
+     * @param conn Conexión transaccional (NO se cierra en este método)
+     * @throws SQLException Si la credencial no existe o hay error de BD
+     */
+    @Override
+    public void recuperarTx(long id, Connection conn) throws SQLException {
+        try (PreparedStatement stmt = conn.prepareStatement(RECOVER_SQL)) {
+
+            stmt.setLong(1, id);
+            int rowsAffected = stmt.executeUpdate();
+
+            if (rowsAffected == 0) {
+                throw new SQLException("No se encontró credencial con ID: " + id);
+            }
+        }
+    }
+    
+    
     /**
      * Obtiene una credencial por su ID.
      * Solo retorna credenciales activas (eliminado=FALSE).
@@ -294,7 +343,8 @@ public class CredencialAccesoDAO implements GenericDAO<CredencialAcceso> {
     private void setCredencialParameters(PreparedStatement stmt, CredencialAcceso credencial) throws SQLException {
         stmt.setString(1, credencial.getHashPassword());
         stmt.setString(2, credencial.getSalt());
-        stmt.setBoolean(3, credencial.getRequireReset());
+        stmt.setObject(3, credencial.getUltimoCambio());
+        stmt.setBoolean(4, credencial.getRequireReset());
     }
 
     /**
