@@ -9,7 +9,7 @@ CREATE TABLE credencial_acceso (
     eliminado TINYINT(1) NOT NULL DEFAULT 0, -- 0: no eliminado. 1: eliminado.
     hashPassword VARCHAR(255) NOT NULL,
     salt VARCHAR(64),
-    ultimoCambio DATETIME,
+    ultimoCambio DATETIME DEFAULT CURRENT_TIMESTAMP,
     requireReset TINYINT(1) NOT NULL DEFAULT 0 -- 0: no requiere. 1: requiere.
 );
 
@@ -19,7 +19,7 @@ CREATE TABLE usuarios (
     username VARCHAR(30) NOT NULL UNIQUE,
     email VARCHAR(120) NOT NULL UNIQUE,
     activo TINYINT(1) NOT NULL DEFAULT 0, -- 0: activo. 1: inactivo.
-    fechaRegistro DATETIME,
+    fechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP,
     credencial_id BIGINT NOT NULL UNIQUE,
-    FOREIGN KEY (credencial_id) REFERENCES credencial_acceso(id) ON DELETE RESTRICT ON UPDATE CASCADE
+    FOREIGN KEY (credencial_id) REFERENCES credencial_acceso(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
