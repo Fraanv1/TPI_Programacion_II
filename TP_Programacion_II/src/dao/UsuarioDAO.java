@@ -82,27 +82,6 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     
     private static final String RECOVER_SQL = "UPDATE usuarios SET eliminado = FALSE WHERE id = ?";
     
-    /**
-     * DAO de CredencialAcceso. Usado para operaciones que puedan requerir
-     * la coordinación de la persistencia de las credenciales.
-     */
-    private final CredencialAccesoDAO credencialAccesoDAO;
-    
-    
-    /**
-     * Constructor con inyección de CredencialAccesoDAO.
-     * Valida que la dependencia no sea null (fail-fast).
-     *
-     * @param credencialAccesoDAO DAO de CredencialAcceso
-     * @throws IllegalArgumentException si credencialAccesoDAO es null
-     */
-    public UsuarioDAO(CredencialAccesoDAO credencialAccesoDAO) {
-        if (credencialAccesoDAO == null) {
-            throw new IllegalArgumentException("credencialAccesoDAO no puede ser null");
-        }
-        this.credencialAccesoDAO = credencialAccesoDAO;
-    }
-    
         /**
      * Inserta un **Usuario** en la base de datos (versión sin transacción).
      * Crea su propia conexión y la cierra automáticamente.
@@ -364,9 +343,6 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
     
     
     public Usuario buscarPorUsername(String username) throws SQLException {
-        if (username == null || username.trim().isEmpty()) {
-            throw new IllegalArgumentException("El username de búsqueda no puede estar vacío");
-        }
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(SEARCH_BY_USERNAME_SQL)) {
@@ -401,9 +377,6 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
      * @throws SQLException Si hay error de BD
      */
     public Usuario buscarPorEmail(String email) throws SQLException {
-        if (email == null || email.trim().isEmpty()) {
-            throw new IllegalArgumentException("El email no puede estar vacío");
-        }
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(SEARCH_BY_EMAIL_SQL)) {

@@ -10,6 +10,7 @@ import java.util.List;
 /**
  *
  * @author soilu
+ * @param <T> Objeto al cual necesitamos implementarle la interfaz
  */
 public interface GenericDAO<T> {
     
