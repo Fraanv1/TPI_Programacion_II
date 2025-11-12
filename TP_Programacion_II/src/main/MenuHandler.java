@@ -179,44 +179,71 @@ public class MenuHandler {
     /**
      * Opción 4: Actualizar Usuario existente.
      *
-     * Flujo:
-     * 1. Solicita ID del usuario y lo obtiene (getById).
-     * 2. Muestra valores actuales y permite actualizar:
-     * - Username (Enter para mantener actual).
-     * - Email (Enter para mantener actual).
-     * - Estado 'activo' (Enter para mantener actual).
-     * 3. Llama a actualizarCredencialDeUsuario() para manejar cambios en password.
-     * 4. Invoca usuarioService.actualizar(usuario) (método transaccional).
+     * Flujo: 1. Solicita el criterio de búsqueda (ID, Username, Email) y busca
+     * al usuario. 2. Si se encuentra, muestra valores actuales y permite
+     * actualizar: - Username (Enter para mantener actual). - Email (Enter para
+     * mantener actual). - Estado 'activo' (Enter para mantener actual). 3.
+     * Llama a 'actualizarCredencial()' para manejar cambios en password. 4.
+     * Invoca 'usuarioService.actualizar(usuario)' (método transaccional) solo
+     * si se detectó algún cambio.
      *
-     * Patrón "Enter para mantener":
-     * - Lee input con scanner.nextLine().trim().
-     * - Si isEmpty() → NO actualiza el campo (mantiene valor actual).
-     * - Si tiene valor → Actualiza el campo.
+     * Patrón "Enter para mantener": - Lee input con scanner.nextLine().trim().
+     * - Si isEmpty() → NO actualiza el campo (mantiene valor actual). - Si
+     * tiene valor → Actualiza el campo.
      */
     public void actualizarUsuario() {
         try {
-            System.out.print("ID del usuario a actualizar: ");
-            long id = Long.parseLong(scanner.nextLine());
-            Usuario u = usuarioService.getById(id);
+            System.out.println("--- Actualizar Usuario ---");
+            System.out.print("¿Buscar usuario a actualizar por (1) ID, (2) Username o (3) Email? Ingrese opcion: ");
+            int opcionBusqueda = Integer.parseInt(scanner.nextLine());
+
+            Usuario u; // Declaramos 'u' fuera del switch
+
+            switch (opcionBusqueda) {
+                case 1 -> {
+                    System.out.print("Ingrese el ID: ");
+                    long id = Long.parseLong(scanner.nextLine());
+                    u = usuarioService.getById(id);
+                }
+                case 2 -> {
+                    System.out.print("Ingrese el Username: ");
+                    String usernameBusqueda = scanner.nextLine().trim();
+                    u = usuarioService.buscarPorUsername(usernameBusqueda);
+                }
+                case 3 -> {
+                    System.out.print("Ingrese el Email: ");
+                    String emailBusqueda = scanner.nextLine().trim();
+                    u = usuarioService.buscarPorEmail(emailBusqueda);
+                }
+                default -> {
+                    System.out.println("Opción de búsqueda inválida.");
+                    return; // Salir
+                }
+            }
 
             if (u == null) {
                 System.out.println("Usuario no encontrado.");
                 return;
             }
 
+            boolean actualizar = false;
+
             System.out.println("--- Actualizando Usuario: " + u.getUsername() + " ---");
             System.out.println("(Deje en blanco y aprete enter para mantener el valor actual)");
 
             System.out.print("Nuevo username (actual: " + u.getUsername() + "): ");
+
             String username = scanner.nextLine().trim();
             if (!username.isEmpty()) {
                 u.setUsername(username);
+                actualizar = true;
             }
 
             System.out.print("Nuevo email (actual: " + u.getEmail() + "): ");
             String email = scanner.nextLine().trim();
             if (!email.isEmpty()) {
                 u.setEmail(email);
+                actualizar = true;
             }
 
             System.out.print("¿Usuario activo? (s/n) (actual: " + u.isActivo() + "): ");
@@ -225,8 +252,10 @@ public class MenuHandler {
             if (!activoStr.isEmpty()) {
                 if (activoStr.equalsIgnoreCase("s")) {
                     u.setActivo(true);
+                    actualizar = true;
                 } else if (activoStr.equalsIgnoreCase("n")) {
                     u.setActivo(false);
+                    actualizar = true;
                 } else {
                     // Si el usuario escribe algo invalido no se cambia el estado
                     System.out.println("(Entrada '" + activoStr + "' no reconocida. El estado 'activo' no se modificó.)");
@@ -234,12 +263,16 @@ public class MenuHandler {
             }
 
             // Llama al método auxiliar para manejar la lógica de la credencial
-            actualizarCredencialDeUsuario(u);
+            boolean actualizarCredencial = actualizarCredencial(u.getCredencial());
 
-            // Llama al service transaccional
-            usuarioService.actualizar(u);
-            System.out.println("Usuario actualizado exitosamente.");
-            
+            if (actualizar || actualizarCredencial) {
+                // Llama al service transaccional
+                usuarioService.actualizar(u);
+                System.out.println("Usuario actualizado exitosamente.");
+            } else {
+                System.out.println("No han habido cambios.");
+            }
+
         } catch (NumberFormatException e) {
             System.err.println("Error: El ID debe ser un número valido.");
         } catch (Exception e) {
@@ -313,8 +346,8 @@ public class MenuHandler {
     /**
      * Opción 7: Listar todas las Credenciales activas.
      *
-     * Muestra: ID, Último Cambio, Requiere Reset, y si está eliminada.
-     * NO MUESTRA el hash ni el salt para mantener la seguridad.
+     * Muestra: ID, Último Cambio, Requiere Reset, si está eliminada,
+     * el hash y el salt.
      */
     public void listarCredenciales() {
         try {
@@ -348,7 +381,7 @@ public class MenuHandler {
 
             CredencialAcceso credencial = credencialAccesoService.getById(id);
 
-            imprimirCredencial(credencial); // El helper maneja si es null
+            imprimirCredencial(credencial); // El método maneja si es null
 
         } catch (NumberFormatException e) {
             System.err.println("Error: El ID debe ser un número valido.");
@@ -357,21 +390,20 @@ public class MenuHandler {
         }
     }
     
-    /**
+/**
      * Opción 9: Actualizar Credencial por su ID.
      *
      * Flujo:
-     * 1. Solicita ID de la credencial.
-     * 2. Pide nuevo password y si requiere reset (lógica "Enter para mantener").
-     * 3. Invoca credencialAccesoService.actualizar() (método simple, no Tx).
-     * - El servicio se encarga de re-hashear el password.
+     * 1. Solicita ID de la credencial y la obtiene.
+     * 2. Llama al método auxiliar 'actualizarCredencial' para manejar la lógica de inputs.
+     * 3. Si el auxiliar reporta cambios, invoca credencialAccesoService.actualizar().
      */
     public void actualizarCredencialPorId() {
         try {
             System.out.print("ID de la credencial a actualizar: ");
             long id = Long.parseLong(scanner.nextLine());
             CredencialAcceso cred = credencialAccesoService.getById(id);
-
+            
             if (cred == null) {
                 System.out.println("Credencial no encontrada.");
                 return;
@@ -380,23 +412,16 @@ public class MenuHandler {
             System.out.println("--- Actualizando Credencial ID: " + cred.getId() + " ---");
             System.out.println("(Deje en blanco y presione Enter para mantener el valor actual)");
 
-            System.out.print("Nuevo password (Enter para no cambiar): ");
-            String passwordPlano = scanner.nextLine().trim();
-            if (!passwordPlano.isEmpty()) {
-                cred.setHashPassword(passwordPlano);
-                cred.setSalt(null); // Forzar regeneración de Salt
+            // Este método hace las preguntas y modifica el objeto 'cred'.
+            boolean credencialCambiada = actualizarCredencial(cred);
+
+            // Comprobamos si hubo cambios.
+            if (credencialCambiada) {
+                credencialAccesoService.actualizar(cred);
+                System.out.println("Credencial actualizada exitosamente.");
             } else {
-                cred.setHashPassword(null); // No re-hashear
+                System.out.println("No han habido cambios.");
             }
-
-            System.out.print("¿Requiere reseteo? (s/n) (actual: " + cred.getRequireReset() + "): ");
-            String resetStr = scanner.nextLine().trim();
-            if (!resetStr.isEmpty()) {
-                cred.setRequireReset(resetStr.equalsIgnoreCase("s"));
-            }
-
-            credencialAccesoService.actualizar(cred);
-            System.out.println("Credencial actualizada exitosamente.");
             
         } catch (NumberFormatException e) {
             System.err.println("Error: El ID debe ser un número.");
@@ -426,9 +451,9 @@ public class MenuHandler {
             long id = Long.parseLong(scanner.nextLine());
 
             System.out.print("¿Seguro que desea continuar con esta operación peligrosa? (s/n): ");
-            if (scanner.nextLine().equalsIgnoreCase("s")) {
+            if (scanner.nextLine().equalsIgnoreCase("s")) { // Solo lo borra si el input es "s", cualquier otro cancela el proceso (hecho intencionalmente que no sea solo "n" para cancelar).
                 credencialAccesoService.eliminar(id);
-                System.out.println("Credencial (soft) eliminada.");
+                System.out.println("Credencial eliminada.");
             } else {
                 System.out.println("Operación cancelada.");
             }
@@ -439,14 +464,14 @@ public class MenuHandler {
         }
     }
 
-    /**
+/**
      * Opción 11: Actualizar Credencial por ID de Usuario.
      *
      * Flujo:
      * 1. Solicita ID del usuario -> getById(id).
      * 2. Obtiene la credencial del usuario.
-     * 3. Ejecuta la misma lógica que 'actualizarCredencialPorId' (Op 7).
-     * 4. Invoca credencialAccesoService.actualizar() (método simple, no Tx).
+     * 3. Llama al método auxiliar 'actualizarCredencial' para manejar la lógica de inputs.
+     * 4. Si el auxiliar reporta cambios, invoca credencialAccesoService.actualizar().
      */
     public void actualizarCredencialPorUsuario() {
         try {
@@ -468,23 +493,17 @@ public class MenuHandler {
             System.out.println("--- Actualizando Credencial para Usuario: " + u.getUsername() + " ---");
             System.out.println("(Deje en blanco y presione Enter para mantener el valor actual)");
 
-            System.out.print("Nuevo password (Enter para no cambiar): ");
-            String passwordPlano = scanner.nextLine().trim();
-            if (!passwordPlano.isEmpty()) {
-                cred.setHashPassword(passwordPlano);
-                cred.setSalt(null); // Forzar regeneración de Salt
+            
+            // Llama al metodo auxiliar.
+            boolean credencialCambiada = actualizarCredencial(cred);
+
+            // Comrpueba si hubo cambios o no.
+            if (credencialCambiada) {
+                credencialAccesoService.actualizar(cred);
+                System.out.println("Credencial actualizada exitosamente.");
             } else {
-                cred.setHashPassword(null); // No re-hashear
+                System.out.println("No han habido cambios.");
             }
-
-            System.out.print("¿Requiere reseteo? (s/n) (actual: " + cred.getRequireReset() + "): ");
-            String resetStr = scanner.nextLine().trim();
-            if (!resetStr.isEmpty()) {
-                cred.setRequireReset(resetStr.equalsIgnoreCase("s"));
-            }
-
-            credencialAccesoService.actualizar(cred);
-            System.out.println("Credencial actualizada exitosamente.");
 
         } catch (NumberFormatException e) {
             System.err.println("Error: El ID debe ser un número.");
@@ -492,51 +511,6 @@ public class MenuHandler {
             System.err.println("Error al actualizar credencial: " + e.getMessage());
         }
     }
-
-    /**
-     * Opción 12: Eliminar Credencial por ID de Usuario (PELIGROSO).
-     *
-     * ⚠️ ADVERTENCIA: Esta operación es IDÉNTICA en efecto a la Opción 8.
-     * Solo cambia la forma de buscar el ID de la credencial.
-     * Dejará al usuario en un estado inconsistente.
-     *
-     * La única eliminación SEGURA es la Opción 4 (Eliminar Usuario).
-     */
-    public void eliminarCredencialPorUsuario() {
-        try {
-            System.out.println("--- ADVERTENCIA ---");
-            System.out.println("Esta operación solo elimina la credencial, no el usuario.");
-            System.out.println("El usuario quedará en estado INCONSISTENTE.");
-            System.out.println("La forma SEGURA de eliminar es la Opción 4 (Eliminar Usuario).");
-            
-            System.out.print("ID del usuario cuya credencial desea eliminar: ");
-            long usuarioId = Long.parseLong(scanner.nextLine());
-            Usuario u = usuarioService.getById(usuarioId);
-
-            if (u == null) {
-                System.out.println("Usuario no encontrado.");
-                return;
-            }
-            if (u.getCredencial() == null) {
-                 System.out.println("Este usuario no tiene una credencial.");
-                return;
-            }
-
-            System.out.print("¿Seguro que desea continuar con esta operación peligrosa? (s/n): ");
-            if (scanner.nextLine().equalsIgnoreCase("s")) {
-                long credId = u.getCredencial().getId();
-                credencialAccesoService.eliminar(credId);
-                System.out.println("Credencial (soft) eliminada.");
-            } else {
-                System.out.println("Operación cancelada.");
-            }
-        } catch (NumberFormatException e) {
-            System.err.println("Error: El ID debe ser un número.");
-        } catch (Exception e) {
-            System.err.println("Error al eliminar credencial: " + e.getMessage());
-        }
-    }
-
 
     // =========================================================================
     // MÉTODOS AUXILIARES (PRIVADOS)
@@ -576,14 +550,14 @@ public class MenuHandler {
      *
      * @param u El objeto Usuario que se está actualizando.
      */
-    private void actualizarCredencialDeUsuario(Usuario u) {
-        if (u.getCredencial() == null) {
-            System.out.println("Este usuario no tiene credencial (Estado inconsistente).");
-            return;
+    private boolean actualizarCredencial(CredencialAcceso cred) {
+        if (cred == null) {
+            System.out.println("La credencial es nula.");
+            return false;
         }
 
-        CredencialAcceso cred = u.getCredencial();
-
+        boolean actualizar = false;
+        
         System.out.print("¿Desea actualizar la password? (s/n): ");
         if (scanner.nextLine().equalsIgnoreCase("s")) {
             System.out.print("Nuevo password: ");
@@ -595,6 +569,7 @@ public class MenuHandler {
                 // Ponemos el salt en null. Esta será la "señal" para que el
                 // CredencialAccesoService sepa que debe volver a generar el hash y el salt.
                 cred.setSalt(null);
+                actualizar = true;
             }
             // Si el password está vacío (solo dio Enter), no hacemos nada
             // El objeto 'cred' mantiene su hash y salt originales
@@ -608,13 +583,19 @@ public class MenuHandler {
         if (!resetStr.isEmpty()) {
             if (resetStr.equalsIgnoreCase("s")) {
                 cred.setRequireReset(true);
+                actualizar = true;
             } else if (resetStr.equalsIgnoreCase("n")) {
                 cred.setRequireReset(false);
+                actualizar = true;
             } else {
                 System.out.println("(Entrada '" + resetStr + "' no reconocida. El estado 'Requiere Reseteo' no se modificó.)");
             }
+            
         }
-        // Si resetStr está vacío, no se hace nada y se mantiene el valor original.
+        // Si resetStr o passwordPlano están vacíos, no se hace nada y se mantiene el valor original.
+        // Devuelve true si se hicieron cambios, de lo contrario devuelve false
+        return actualizar;
+        
     }
     
     /**
@@ -625,13 +606,17 @@ public class MenuHandler {
      * @param c La CredencialAcceso (válida) a imprimir.
      */
     private void imprimirCredencial(CredencialAcceso c) {
-        // (Asumimos que la creencial no es null, porque el método que lo llama lo comprueba)
+        if (c == null) {
+            System.out.println("No se encontró ninguna credencial que coincida.");
+            return;
+        }
         System.out.println("  --- Credencial (ID: " + c.getId() + ") ---");
         System.out.println("  Hash: " + c.getHashPassword());
         System.out.println("  Salt: " + c.getSalt());
         System.out.println("  Último Cambio: " + c.getUltimoCambio());
         System.out.println("  Requiere Reset: " + c.getRequireReset());
         System.out.println("  Eliminada: " + c.isEliminado());
+
     }
     
     /**
