@@ -5,6 +5,7 @@
 package service;
 
 import config.DatabaseConnection;
+import config.TransactionManager; // Importamos el TransactionManager
 import dao.UsuarioDAO;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -65,12 +66,11 @@ public class UsuarioService implements GenericService<Usuario> {
      * Flujo Transaccional (Todo o Nada):
      * 1. Valida los datos del usuario (username, email, credencial no nula).
      * 2. Valida la unicidad de username y email (RN).
-     * 3. **Inicia Transacción.**
-     * 4. Aplica lógica de negocio (setea 'ultimoCambio' en la credencial).
-     * 5. Inserta la CredencialAcceso (para obtener su ID).
-     * 6. Inserta el Usuario (usando el ID de la credencial).
-     * 7. **Commit** (si todo fue exitoso).
-     * 8. **Rollback** (si alguna operación falló).
+     * 3. **Inicia Transacción (con TransactionManager).**
+     * 4. Inserta la CredencialAcceso (obtiene ID).
+     * 5. Inserta el Usuario (usa el ID de la credencial).
+     * 6. **Commit** (si todo fue exitoso).
+     * 7. **Rollback** (automático por TransactionManager si falla).
      *
      * @param usuario Usuario a insertar (debe incluir su objeto CredencialAcceso)
      * @throws Exception Si la validación falla o hay un error de BD.
@@ -81,30 +81,23 @@ public class UsuarioService implements GenericService<Usuario> {
         validateUsername(usuario.getUsername(), null); 
         validateEmail(usuario.getEmail(), null); 
 
-        
-        Connection conn = null; 
-        try {
-            conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false); 
+        // El try-with-resources maneja el TransactionManager (y la conexión)
+        // El .close() del TransactionManager hará rollback si no se hizo commit.
+        try (Connection conn = DatabaseConnection.getConnection();
+             TransactionManager tx = new TransactionManager(conn)) {
+
+            tx.startTransaction();
 
             CredencialAcceso cred = usuario.getCredencial();
             
             credencialAccesoService.insertarTx(cred, conn);
-
             usuarioDAO.insertarTx(usuario, conn);
 
-            conn.commit();
+            tx.commit();
 
         } catch (Exception e) {
-            if (conn != null) {
-                conn.rollback();
-            }
+            // No necesitamos rollback manual, tx.close() lo maneja.
             throw new Exception("Error transaccional al insertar usuario: " + e.getMessage(), e);
-        } finally {
-            if (conn != null) {
-                conn.setAutoCommit(true);
-                conn.close();
-            }
         }
     }
 
@@ -114,28 +107,27 @@ public class UsuarioService implements GenericService<Usuario> {
      * Flujo Transaccional:
      * 1. Valida los datos del usuario.
      * 2. Valida la unicidad (excepto para el propio usuario).
-     * 3. **Inicia Transacción.**
-     * 4. Aplica lógica (ej. si se cambió la pass, setear 'ultimoCambio').
-     * 5. Actualiza la CredencialAcceso (ej. nuevo hash).
-     * 6. Actualiza el Usuario (ej. nuevo email, username).
-     * 7. **Commit** o **Rollback**.
+     * 3. **Inicia Transacción (con TransactionManager).**
+     * 4. Actualiza la CredencialAcceso (si es necesario).
+     * 5. Actualiza el Usuario.
+     * 6. **Commit** o **Rollback** (automático).
      *
      * @param usuario Usuario con los datos actualizados
      * @throws Exception Si la validación falla o hay un error de BD.
      */
     @Override
     public void actualizar(Usuario usuario) throws Exception {
-        validateUsuario(usuario);
         if (usuario.getId() <= 0) {
             throw new IllegalArgumentException("El ID del usuario debe ser mayor a 0 para actualizar");
         }
+        validateUsuario(usuario);
         validateUsername(usuario.getUsername(), usuario.getId()); 
         validateEmail(usuario.getEmail(), usuario.getId()); 
 
-        Connection conn = null;
-        try {
-            conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false);
+        try (Connection conn = DatabaseConnection.getConnection();
+             TransactionManager tx = new TransactionManager(conn)) {
+            
+            tx.startTransaction();
 
             CredencialAcceso cred = usuario.getCredencial();
             if (cred != null) {
@@ -144,18 +136,10 @@ public class UsuarioService implements GenericService<Usuario> {
 
             usuarioDAO.actualizarTx(usuario, conn); 
 
-            conn.commit();
+            tx.commit();
 
         } catch (Exception e) {
-            if (conn != null) {
-                conn.rollback();
-            }
             throw new Exception("Error transaccional al actualizar usuario: " + e.getMessage(), e);
-        } finally {
-            if (conn != null) {
-                conn.setAutoCommit(true);
-                conn.close();
-            }
         }
     }
 
@@ -163,11 +147,11 @@ public class UsuarioService implements GenericService<Usuario> {
      * Elimina (soft delete) un Usuario y su CredencialAcceso de forma transaccional.
      *
      * Flujo Transaccional:
-     * 1. **Inicia Transacción.**
+     * 1. **Inicia Transacción (con TransactionManager).**
      * 2. Obtiene el Usuario (para saber qué CredencialAcceso eliminar).
      * 3. Elimina (soft delete) el Usuario.
      * 4. Elimina (soft delete) la CredencialAcceso asociada.
-     * 5. **Commit** o **Rollback**.
+     * 5. **Commit** o **Rollback** (automático).
      *
      * @param id ID del usuario a eliminar
      * @throws Exception Si el ID no existe o hay un error de BD.
@@ -178,10 +162,10 @@ public class UsuarioService implements GenericService<Usuario> {
             throw new IllegalArgumentException("El ID debe ser mayor a 0");
         }
 
-        Connection conn = null;
-        try {
-            conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false);
+        try (Connection conn = DatabaseConnection.getConnection();
+             TransactionManager tx = new TransactionManager(conn)) {
+            
+            tx.startTransaction();
 
             Usuario usuario = usuarioDAO.getById(id);
             if (usuario == null) {
@@ -194,18 +178,10 @@ public class UsuarioService implements GenericService<Usuario> {
                 credencialAccesoService.eliminarTx(usuario.getCredencial().getId(), conn); 
             }
 
-            conn.commit();
+            tx.commit();
 
         } catch (Exception e) {
-            if (conn != null) {
-                conn.rollback();
-            }
             throw new Exception("Error transaccional al eliminar usuario: " + e.getMessage(), e);
-        } finally {
-            if (conn != null) {
-                conn.setAutoCommit(true);
-                conn.close();
-            }
         }
     }
     
@@ -213,12 +189,13 @@ public class UsuarioService implements GenericService<Usuario> {
      * Recupera un Usuario y su CredencialAcceso de forma
      * transaccional.
      *
-     * Flujo Transaccional: 1. **Inicia Transacción.** 2. Obtiene el Usuario
-     * (para saber qué CredencialAcceso recuperar). 3. Recupera el
-     * Usuario. 4. Recupera la CredencialAcceso asociada. 5.
-     * **Commit** o **Rollback**.
+     * Flujo Transaccional: 1. **Inicia Transacción (con TransactionManager).**
+     * 2. Recupera el Usuario.
+     * 3. Obtiene el Usuario (para saber qué CredencialAcceso recuperar).
+     * 4. Recupera la CredencialAcceso asociada.
+     * 5. **Commit** o **Rollback** (automático).
      *
-     * @param id ID del usuario a eliminar
+     * @param id ID del usuario a recuperar
      * @throws Exception Si el ID no existe o hay un error de BD.
      */
 @Override
@@ -227,39 +204,27 @@ public class UsuarioService implements GenericService<Usuario> {
             throw new IllegalArgumentException("El ID debe ser mayor a 0");
         }
 
-        Connection conn = null;
-        try {
-            conn = DatabaseConnection.getConnection();
-            conn.setAutoCommit(false);
+        try (Connection conn = DatabaseConnection.getConnection();
+             TransactionManager tx = new TransactionManager(conn)) {
+            
+            tx.startTransaction();
 
-            // Esto hace que 'eliminado' vuelva a ser FALSE
             usuarioDAO.recuperarTx(id, conn);
 
-            // Lo buscamos para saber qué credencial debemos recuperar, antes no lo podiamos hacer ya que getById() solo busca usuarios con 'eliminado = false'
             Usuario usuario = usuarioDAO.getById(id); 
             
             if (usuario == null) {
-                // Si sigue siendo null, significa que el ID nunca existió
                 throw new SQLException("No se encontró usuario con ID: " + id);
             }
 
-            // Recupera la credencial del usuario
             if (usuario.getCredencial() != null) {
                 credencialAccesoService.recuperarTx(usuario.getCredencial().getId(), conn);
             }
 
-            conn.commit();
+            tx.commit();
 
         } catch (Exception e) {
-            if (conn != null) {
-                conn.rollback();
-            }
             throw new Exception("Error transaccional al recuperar usuario: " + e.getMessage(), e);
-        } finally {
-            if (conn != null) {
-                conn.setAutoCommit(true);
-                conn.close();
-            }
         }
     }
 
@@ -303,9 +268,6 @@ public class UsuarioService implements GenericService<Usuario> {
     private void validateUsuario(Usuario usuario) {
         if (usuario == null) {
             throw new IllegalArgumentException("El usuario no puede ser null");
-        }
-        if (usuario.getId() <= 0) {
-            throw new IllegalArgumentException("El ID del usuario debe ser mayor a 0");
         }
         if (usuario.getUsername() == null || usuario.getUsername().trim().isEmpty()) {
             throw new IllegalArgumentException("El username no puede estar vacío");

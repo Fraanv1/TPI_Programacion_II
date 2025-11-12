@@ -21,6 +21,14 @@ import model.Usuario;
  */
 public class UsuarioDAO implements GenericDAO<Usuario> {
     
+    // Query para buscar un usuario en base a su crdencial ID.
+    private static final String SEARCH_BY_CREDENCIAL_ID_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, "
+            + "c_a.id AS credencial_id, c_a.hashPassword, c_a.salt, c_a.ultimoCambio, c_a.requireReset "
+            + "FROM usuarios u LEFT JOIN credencial_acceso as c_a ON u.credencial_id = c_a.id "
+            + "WHERE u.credencial_id = ? AND u.eliminado = FALSE";
+    
+    
+    
     private static final String INSERT_SQL = "INSERT INTO usuarios (username, email, credencial_id) VALUES (?, ?, ?)";
 
     /**
@@ -331,6 +339,28 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
         return usuarios;
     }
 
+    /**
+     * Busca un usuario activo por el ID de su credencial. Usado por
+     * CredencialAccesoService para verificar si una credencial está en uso.
+     *
+     * @param credencialId El ID de la credencial a buscar.
+     * @return El Usuario encontrado, o null si ninguno la usa.
+     * @throws SQLException Si hay un error de BD.
+     */
+    public Usuario buscarPorCredencialId(long credencialId) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(SEARCH_BY_CREDENCIAL_ID_SQL)) {
+
+            stmt.setLong(1, credencialId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToUsuario(rs);
+                }
+            }
+        }
+        return null; // No se encontró ningún usuario con esa credencial
+    }
+    
  /**
      * Busca un **Usuario** por **username** exacto.
      * Usa comparación exacta (=) ya que el username es ÚNICO.
