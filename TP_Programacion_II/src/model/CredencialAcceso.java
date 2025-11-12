@@ -17,15 +17,24 @@ public class CredencialAcceso extends Base {
     private Boolean requireReset;
 
     public CredencialAcceso() {
-        super();
+        super(false);
     }
 
-    public CredencialAcceso(Long id, String hashPassword, String salt, LocalDateTime ultimoCambio, Boolean requireReset) {
+    public CredencialAcceso(Long id, String hashPassword, String salt, Boolean requireReset) {
         super(id, false);
         this.hashPassword = hashPassword;
         this.salt = salt;
         this.ultimoCambio = LocalDateTime.now();
         this.requireReset = requireReset;
+    }
+    
+    // Solo los parametros not null que no tienen metodo default en SQL 
+    // (ademas de eliminado = false y el último cambio, que tienen metodos default en SQL
+    // pero por comodidad los ponemos también acá sin que el usuario los ingrese)
+    public CredencialAcceso(String hashPassword) {
+        super(false);
+        this.hashPassword = hashPassword;
+        this.ultimoCambio = LocalDateTime.now();
     }
 
     public String getHashPassword() {

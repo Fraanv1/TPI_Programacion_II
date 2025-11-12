@@ -81,6 +81,7 @@ public class UsuarioService implements GenericService<Usuario> {
         validateUsername(usuario.getUsername(), null); 
         validateEmail(usuario.getEmail(), null); 
 
+        
         Connection conn = null; 
         try {
             conn = DatabaseConnection.getConnection();
@@ -302,6 +303,9 @@ public class UsuarioService implements GenericService<Usuario> {
     private void validateUsuario(Usuario usuario) {
         if (usuario == null) {
             throw new IllegalArgumentException("El usuario no puede ser null");
+        }
+        if (usuario.getId() <= 0) {
+            throw new IllegalArgumentException("El ID del usuario debe ser mayor a 0");
         }
         if (usuario.getUsername() == null || usuario.getUsername().trim().isEmpty()) {
             throw new IllegalArgumentException("El username no puede estar vacío");

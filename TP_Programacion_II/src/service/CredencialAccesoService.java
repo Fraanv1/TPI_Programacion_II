@@ -10,6 +10,7 @@ import dao.CredencialAccesoDAO; // Importar el DAO concreto
 import java.time.LocalDateTime;
 import java.util.List;
 import model.CredencialAcceso;
+import utils.HashingUtil;
 
 /**
  * **Capa de Servicio para la entidad CredencialAcceso.**
@@ -58,6 +59,8 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
     public void insertar(CredencialAcceso credencial) throws Exception {
         validateCredencial(credencial);
         credencial.setUltimoCambio(LocalDateTime.now());
+        prepararCredencialParaInsertar(credencial);
+        
         credencialAccesoDAO.insertar(credencial);
     }
 
@@ -75,6 +78,7 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
             throw new IllegalArgumentException("El ID de la credencial debe ser mayor a 0 para actualizar");
         }
         credencial.setUltimoCambio(LocalDateTime.now());
+        prepararCredencialParaActualizar(credencial);
         credencialAccesoDAO.actualizar(credencial);
     }
 
@@ -152,7 +156,9 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
      */
     public void insertarTx(CredencialAcceso credencial, Connection conn) throws Exception {
         validateCredencial(credencial);
-        credencial.setUltimoCambio(LocalDateTime.now()); 
+        credencial.setUltimoCambio(LocalDateTime.now());
+        prepararCredencialParaInsertar(credencial);
+        
         credencialAccesoDAO.insertarTx(credencial, conn);
     }
 
@@ -166,6 +172,7 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
      */
     public void actualizarTx(CredencialAcceso credencial, Connection conn) throws Exception {
         validateCredencial(credencial);
+        prepararCredencialParaActualizar(credencial);
         if (credencial.getId() <= 0) {
             throw new IllegalArgumentException("El ID de la credencial debe ser mayor a 0 para actualizar");
         }
@@ -217,18 +224,61 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
         if (credencial == null) {
             throw new IllegalArgumentException("La credencial no puede ser null");
         }
+        if (credencial.getId() <= 0) {
+            throw new IllegalArgumentException("El ID de la credencial debe ser mayor a 0");
+        }
         if (credencial.getHashPassword() == null || credencial.getHashPassword().trim().isEmpty()) {
             throw new IllegalArgumentException("El hashPassword no puede estar vacío");
         }
         if (credencial.getHashPassword().length() > 255) {
             throw new IllegalArgumentException("El hashPassword no puede tener mas de 255 caracteres");
         }
-        if (credencial.getSalt() == null || credencial.getSalt().trim().isEmpty()) {
-            throw new IllegalArgumentException("El salt no puede estar vacío");
-        }
         if (credencial.getSalt().length() > 64) {
             throw new IllegalArgumentException("El salt no puede tener mas de 64 caracteres");
         }
+    }
+    
+    /**
+     * Prepara una credencial para una operación de INSERT. Siempre genera salt y hash.
+     */
+    private void prepararCredencialParaInsertar(CredencialAcceso credencial) {
+        if (credencial == null) {
+            throw new IllegalArgumentException("La credencial no puede ser null");
+        }
+
+        credencial.setUltimoCambio(LocalDateTime.now());
+
+        String passwordPlano = credencial.getHashPassword(); // Asumimos que acá viene el texto plano
+        String salt = HashingUtil.generarSalt();
+        String hash = HashingUtil.hashPassword(passwordPlano, salt);
+
+        credencial.setSalt(salt);
+        credencial.setHashPassword(hash);
+    }
+
+    /**
+     * Prepara una credencial para una operación de UPDATE. Solo genera hash y
+     * salt si el salt fue seteado a null (la señal del MenuHandler).
+     */
+    private void prepararCredencialParaActualizar(CredencialAcceso credencial) {
+        if (credencial == null) {
+            throw new IllegalArgumentException("La credencial no puede ser null");
+        }
+
+        credencial.setUltimoCambio(LocalDateTime.now());
+
+        // Si el Salt es null, es la señal del MenuHandler de que
+        // hashPassword contiene texto plano y necesita ser hasheado.
+        if (credencial.getSalt() == null) {
+            String passwordPlano = credencial.getHashPassword();
+            String nuevoSalt = HashingUtil.generarSalt();
+            String nuevoHash = HashingUtil.hashPassword(passwordPlano, nuevoSalt);
+
+            credencial.setSalt(nuevoSalt);
+            credencial.setHashPassword(nuevoHash);
+        }
+        // Si el Salt NO es null, significa que MenuHandler no lo cambió,
+        // y el hash/salt son los originales. Por lo que no hacemos nada.
     }
 
 }

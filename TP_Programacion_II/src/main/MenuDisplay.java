@@ -9,5 +9,21 @@ package main;
  * @author soilu
  */
 public class MenuDisplay {
-    
+    public static void mostrarMenuPrincipal() {
+        System.out.println("\n========= MENU =========");
+        System.out.println("1. Crear usuario");
+        System.out.println("2. Listar usuarios");
+        System.out.println("3. Buscar usuario");
+        System.out.println("4. Actualizar usuario");
+        System.out.println("5. Eliminar usuario");
+        System.out.println("6. Crear credencial de acceso");
+        System.out.println("7. Listar credenciales de acceso");
+        System.out.println("8. Buscar credencial de acceso por ID");
+        System.out.println("9. Actualizar credencial de acceso por ID");
+        System.out.println("10. Eliminar credencial de acceso por ID");
+        System.out.println("11. Actualizar credencial de acceso por ID de usuario");
+        System.out.println("12. Eliminar credencial de acceso por ID de usuario");
+        System.out.println("0. Salir");
+        System.out.print("Ingrese una opcion: ");
+    }
 }

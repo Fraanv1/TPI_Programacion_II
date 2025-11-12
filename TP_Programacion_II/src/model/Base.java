@@ -17,6 +17,12 @@ public class Base {
         this.eliminado = eliminado;
     }
 
+    public Base(Boolean eliminado) {
+        this.eliminado = eliminado;
+    }
+
+    
+    
     public Base() {
     }
     

@@ -18,15 +18,26 @@ public class Usuario extends Base {
     private CredencialAcceso credencial;
     
     public Usuario() {
-        super();
+        super(false);
     }
 
-    public Usuario(Long id, String username, String email, Boolean activo, LocalDateTime fechaRegistro, CredencialAcceso credencial) {
+    public Usuario(Long id, String username, String email, Boolean activo, CredencialAcceso credencial) {
         super(id, false);
         this.username = username;
         this.email = email;
         this.activo = activo;
-        this.fechaRegistro = LocalDateTime.now();;
+        this.fechaRegistro = LocalDateTime.now();
+        this.credencial = credencial;
+    }
+    
+   // Solo los parametros not null que no tienen metodo default en SQL 
+    // (ademas de eliminado = false y la fecha de registro, que tienen metodos default en SQL
+    // pero por comodidad los ponemos también acá sin que el usuario los ingrese)
+    public Usuario(String username, String email, CredencialAcceso credencial) {
+        super(false);
+        this.username = username;
+        this.email = email;
+        this.fechaRegistro = LocalDateTime.now();
         this.credencial = credencial;
     }
 
