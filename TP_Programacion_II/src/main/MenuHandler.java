@@ -355,7 +355,7 @@ public class MenuHandler {
     }
 
     /**
-     * Opción 6: Crear Credencial de Acceso (sin asociar a usuario).
+     * Opción 7: Crear Credencial de Acceso (sin asociar a usuario).
      *
      * Flujo:
      * 1. Llama al método privado crearCredencial() para capturar el password.
@@ -379,7 +379,7 @@ public class MenuHandler {
     }
 
     /**
-     * Opción 7: Listar todas las Credenciales activas.
+     * Opción 8: Listar todas las Credenciales activas.
      *
      * Muestra: ID, Último Cambio, Requiere Reset, si está eliminada,
      * el hash y el salt.
@@ -403,7 +403,7 @@ public class MenuHandler {
 
     
     /**
-     * Opción 8: Buscar una Credencial de Acceso por su ID.
+     * Opción 9: Buscar una Credencial de Acceso por su ID.
      *
      * Flujo: 1. Solicita el ID de la credencial. 2. Llama a
      * credencialAccesoService.getById(). 3. Llama a imprimirCredencial() con el
@@ -426,7 +426,7 @@ public class MenuHandler {
     }
     
 /**
-     * Opción 9: Actualizar Credencial por su ID.
+     * Opción 10: Actualizar Credencial por su ID.
      *
      * Flujo:
      * 1. Solicita ID de la credencial y la obtiene.
@@ -468,7 +468,7 @@ public class MenuHandler {
 
     
     /**
-     * Opción 10: Eliminar Credencial por ID (PELIGROSO - soft delete directo).
+     * Opción 11: Eliminar Credencial por ID (PELIGROSO - soft delete directo).
      *
      * ⚠️ ADVERTENCIA: Esta operación es un soft delete de la credencial.
      * Si un Usuario está usando esta credencial, quedará en un estado
@@ -524,7 +524,7 @@ public class MenuHandler {
     }
 
 /**
-     * Opción 11: Actualizar Credencial por ID de Usuario.
+     * Opción 13: Actualizar Credencial por ID de Usuario.
      *
      * Flujo:
      * 1. Solicita ID del usuario -> getById(id).
