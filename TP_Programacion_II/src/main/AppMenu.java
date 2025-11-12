@@ -138,11 +138,14 @@ public class AppMenu {
             case 3 -> menuHandler.buscarUsuario();
             case 4 -> menuHandler.actualizarUsuario();
             case 5 -> menuHandler.eliminarUsuario();
-            case 6 -> menuHandler.crearCredencialAcceso();
-            case 7 -> menuHandler.listarCredenciales();
-            case 8 -> menuHandler.buscarCredencialPorId();
-            case 9 -> menuHandler.actualizarCredencialPorId();
-            case 10 -> menuHandler.eliminarCredencialPorId();
+            case 6 -> menuHandler.recuperarUsuario();
+            case 7 -> menuHandler.crearCredencialAcceso();
+            case 8 -> menuHandler.listarCredenciales();
+            case 9 -> menuHandler.buscarCredencialPorId();
+            case 10 -> menuHandler.actualizarCredencialPorId();
+            case 11 -> menuHandler.eliminarCredencialPorId();
+            case 12 -> menuHandler.recuperarCredencialPorId();
+            case 13 -> menuHandler.actualizarCredencialPorUsuario();
             case 0 -> {
                 System.out.println("Saliendo...");
                 running = false;

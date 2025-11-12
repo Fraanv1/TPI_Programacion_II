@@ -9,7 +9,7 @@ public class DatabaseConnection {
     // Datos de conexión - Se configuran directamente en el código
     private static final String URL = "jdbc:mysql://localhost:3306/tp_integrador_programacion_ii";
     private static final String USER = "root";
-    private static final String PASSWORD = "123456";
+    private static final String PASSWORD = "123456";        // Contraseña que le hayan asignado a la db
 
     static {
         try {

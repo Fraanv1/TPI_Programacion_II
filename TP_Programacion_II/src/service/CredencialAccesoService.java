@@ -95,8 +95,8 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
             throw new IllegalArgumentException("El ID debe ser mayor a 0");
         }
         
-        Usuario usuarioAsociado = usuarioDAO.buscarPorCredencialId(id);
-        if (usuarioAsociado != null) {
+        Usuario usuarioAsociado = usuarioDAO.buscarPorCredencialIdEnCualquierEstado(id);
+        if (usuarioAsociado != null && !usuarioAsociado.isEliminado()) { // Se verifica si el usuario está eliminado, la cual es la única forma de eliminar una credencial si es que está asociada a un usuario
             throw new IllegalStateException(
                 "No se puede eliminar la credencial ID " + id + " porque está en uso por el usuario: " + usuarioAsociado.getUsername()
             );
@@ -107,10 +107,14 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
     
     @Override
     public void recuperar(long id) throws Exception {
-        if (id <= 0) {
-            throw new IllegalArgumentException("El ID debe ser mayor a 0");
-        }
-        credencialAccesoDAO.recuperar(id);
+        try {
+            if (id <= 0) {
+                throw new IllegalArgumentException("El ID debe ser mayor a 0");
+            }
+            credencialAccesoDAO.recuperar(id);
+         } catch (Exception e) {
+             System.out.println("Credencial no encontrada");
+         }
     }
 
     @Override
@@ -163,16 +167,7 @@ public class CredencialAccesoService implements GenericService<CredencialAcceso>
         if (id <= 0) {
             throw new IllegalArgumentException("El ID debe ser mayor a 0");
         }
-        
-        // Esta búsqueda usa su propia conexión, está fuera de la transacción principa, ya que es solo una validaciónl
-        Usuario usuarioAsociado = usuarioDAO.buscarPorCredencialId(id);
-        if (usuarioAsociado != null) {
-            throw new IllegalStateException(
-                "No se puede eliminar la credencial ID " + id + 
-                " porque está en uso por el usuario: " + usuarioAsociado.getUsername()
-            );
-        }
-        
+        // Asumimos ue UsuarioService sabe lo que hace, y no incluimos más validaciones (esto nos sirve para poder eliminar un usuario y su credencial correctamente)
         credencialAccesoDAO.eliminarTx(id, conn);
     }
     
