@@ -22,12 +22,18 @@ import model.Usuario;
 public class UsuarioDAO implements GenericDAO<Usuario> {
     
     // Query para buscar un usuario en base a su crdencial ID.
-    private static final String SEARCH_BY_CREDENCIAL_ID_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, "
+    private static final String SEARCH_BY_CREDENCIAL_ID_ANY_STATUS_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, u.eliminado, "
             + "c_a.id AS credencial_id, c_a.hashPassword, c_a.salt, c_a.ultimoCambio, c_a.requireReset "
             + "FROM usuarios u LEFT JOIN credencial_acceso as c_a ON u.credencial_id = c_a.id "
-            + "WHERE u.credencial_id = ? AND u.eliminado = FALSE";
+            + "WHERE u.credencial_id = ?";
     
-    
+
+    // Query para obtener un Usuario por ID, sin importar su estado (activo o eliminado).
+
+    private static final String SELECT_BY_ID_ANY_STATUS_SQL = "SELECT u.id, u.username, u.email, u.activo, u.fechaRegistro, u.eliminado, "
+            + "c_a.id AS credencial_id, c_a.hashPassword, c_a.salt, c_a.ultimoCambio, c_a.requireReset "
+            + "FROM usuarios u LEFT JOIN credencial_acceso as c_a ON u.credencial_id = c_a.id "
+            + "WHERE u.id = ?";
     
     private static final String INSERT_SQL = "INSERT INTO usuarios (username, email, credencial_id) VALUES (?, ?, ?)";
 
@@ -339,28 +345,55 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
         return usuarios;
     }
 
-    /**
-     * Busca un usuario activo por el ID de su credencial. Usado por
-     * CredencialAccesoService para verificar si una credencial está en uso.
-     *
-     * @param credencialId El ID de la credencial a buscar.
-     * @return El Usuario encontrado, o null si ninguno la usa.
-     * @throws SQLException Si hay un error de BD.
-     */
-    public Usuario buscarPorCredencialId(long credencialId) throws SQLException {
-        try (Connection conn = DatabaseConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(SEARCH_BY_CREDENCIAL_ID_SQL)) {
+// Agregá este método a UsuarioDAO.java
+/**
+ * Busca un usuario por el ID de su credencial, CUALQUIER sea su estado (activo o eliminado).
+ * Usado por CredencialAccesoService para verificar si una credencial está en uso.
+ *
+ * @param credencialId El ID de la credencial a buscar.
+ * @return El Usuario encontrado, o null si ninguno la usa.
+ * @throws SQLException Si hay un error de BD.
+ */
+public Usuario buscarPorCredencialIdEnCualquierEstado(long credencialId) throws SQLException {
+    try (Connection conn = DatabaseConnection.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(SEARCH_BY_CREDENCIAL_ID_ANY_STATUS_SQL)) {
 
-            stmt.setLong(1, credencialId);
+        stmt.setLong(1, credencialId);
+
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return mapResultSetToUsuarioIncludesEliminado(rs);
+            }
+        }
+    }
+    return null; // No se encontró
+}
+
+    /**
+     * Obtiene un Usuario por su ID, CUALQUIER sea su estado (activo o
+     * eliminado). Usado por el servicio para verificar la existencia antes de
+     * recuperar.
+     *
+     * @param id ID del usuario a buscar
+     * @return Usuario encontrado, o null si no existe
+     * @throws Exception Si hay error de BD
+     */
+    public Usuario getByIdEnCualquierEstado(long id) throws Exception {
+        try (Connection conn = DatabaseConnection.getConnection(); PreparedStatement stmt = conn.prepareStatement(SELECT_BY_ID_ANY_STATUS_SQL)) {
+
+            stmt.setLong(1, id);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToUsuario(rs);
+                    return mapResultSetToUsuarioIncludesEliminado(rs);
                 }
             }
+        } catch (SQLException e) {
+            throw new Exception("Error al obtener usuario por ID (cualquier estado): " + e.getMessage(), e);
         }
-        return null; // No se encontró ningún usuario con esa credencial
+        return null; // No se encontró
     }
-    
+
  /**
      * Busca un **Usuario** por **username** exacto.
      * Usa comparación exacta (=) ya que el username es ÚNICO.
@@ -533,6 +566,50 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
         return usuario;
     }
     
-    
+        /**
+     * Mapea un ResultSet a un objeto **Usuario**.
+     * Reconstruye la relación con **CredencialAcceso** usando LEFT JOIN.
+     *
+     * Mapeo de columnas:
+     * Usuario:
+     * - id → u.id
+     * - username → u.username
+     * - email → u.email
+     * - activo → u.activo
+     * - eliminado → u.eliminado
+     *
+     * CredencialAcceso (puede ser NULL si el usuario no tiene credencial):
+     * - id → c_a.id AS credencial_id
+     * - hashPassword → c_a.hashPassword
+     * - salt → c_a.salt
+     * - requireReset → c_a.requireReset
+     * - ultimoCambio → c_a.ultimoCambio
+     *
+     * @param rs ResultSet posicionado en una fila con datos de usuario y credencial
+     * @return Usuario reconstruido con su credencial (si tiene)
+     * @throws SQLException Si hay error al leer columnas del ResultSet
+     */
+    private Usuario mapResultSetToUsuarioIncludesEliminado(ResultSet rs) throws SQLException {
+        Usuario usuario = new Usuario();
+        usuario.setId(rs.getLong("id"));
+        usuario.setUsername(rs.getString("username"));
+        usuario.setEmail(rs.getString("email"));
+        usuario.setActivo(rs.getBoolean("activo"));
+        usuario.setFechaRegistro(rs.getObject("fechaRegistro", LocalDateTime.class));
+        usuario.setEliminado(rs.getBoolean("eliminado")); // Lo usaremos para verificar en CredencialAccesoService si se puede o no eliminar una credencial
+
+        long credencialAccesoId = rs.getLong("credencial_id");
+        if (!rs.wasNull()) { // Si credencial_id es un valor real (no NULL)
+            CredencialAcceso credencial = new CredencialAcceso();
+            credencial.setId(credencialAccesoId);
+            credencial.setHashPassword(rs.getString("hashPassword"));
+            credencial.setSalt(rs.getString("salt"));
+            credencial.setRequireReset(rs.getBoolean("requireReset"));
+            // La columna ultimoCambio es de tipo DATETIME en la BD
+            credencial.setUltimoCambio(rs.getObject("ultimoCambio", LocalDateTime.class)); 
+            usuario.setCredencial(credencial);
+        }
+        return usuario;
+    }
     
 }

@@ -211,7 +211,7 @@ public class UsuarioService implements GenericService<Usuario> {
 
             usuarioDAO.recuperarTx(id, conn);
 
-            Usuario usuario = usuarioDAO.getById(id); 
+            Usuario usuario = usuarioDAO.getByIdEnCualquierEstado(id); 
             
             if (usuario == null) {
                 throw new SQLException("No se encontró usuario con ID: " + id);

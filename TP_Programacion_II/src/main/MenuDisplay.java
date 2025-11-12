@@ -16,12 +16,14 @@ public class MenuDisplay {
         System.out.println("3. Buscar usuario");
         System.out.println("4. Actualizar usuario");
         System.out.println("5. Eliminar usuario");
-        System.out.println("6. Crear credencial de acceso");
-        System.out.println("7. Listar credenciales de acceso");
-        System.out.println("8. Buscar credencial de acceso por ID");
-        System.out.println("9. Actualizar credencial de acceso por ID");
-        System.out.println("10. Eliminar credencial de acceso por ID");
-        System.out.println("11. Actualizar credencial de acceso por ID de usuario");
+        System.out.println("6. Recuperar usuario");
+        System.out.println("7. Crear credencial de acceso");
+        System.out.println("8. Listar credenciales de acceso");
+        System.out.println("9. Buscar credencial de acceso por ID");
+        System.out.println("10. Actualizar credencial de acceso por ID");
+        System.out.println("11. Eliminar credencial de acceso por ID");
+        System.out.println("12. Recuperar credencial de acceso por ID");
+        System.out.println("13. Actualizar credencial de acceso por ID de usuario");
         System.out.println("0. Salir");
         System.out.print("Ingrese una opcion: ");
     }

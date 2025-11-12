@@ -318,6 +318,41 @@ public class MenuHandler {
             System.err.println("Error al eliminar usuario: " + e.getMessage());
         }
     }
+    
+/**
+     * Opción 6: Recuperar un Usuario (y su Credencial asociada).
+     *
+     * Flujo:
+     * 1. Solicita el ID del usuario a recuperar.
+     * 2. Pide confirmación.
+     * 3. Invoca usuarioService.recuperar(id) que:
+     * - Inicia la transacción.
+     * - Marca 'eliminado = false' en el usuario.
+     * - Marca 'eliminado = false' en la credencial asociada.
+     * - Hace Commit o Rollback.
+     */
+    public void recuperarUsuario() {
+        try {
+            System.out.print("ID del usuario a recuperar: ");
+            long id = Long.parseLong(scanner.nextLine());
+            
+            // A diferencia de getById, no podemos "verificar" el usuario antes
+            // porque getById solo trae usuarios activos.
+            // Confiamos en que el servicio maneje el caso de ID inexistente.
+
+            System.out.print("¿Seguro que desea recuperar al usuario con ID " + id + "? (s/n): ");
+            if (scanner.nextLine().equalsIgnoreCase("s")) {
+                usuarioService.recuperar(id);
+                System.out.println("Usuario y credencial asociados recuperados exitosamente.");
+            } else {
+                System.out.println("Operación cancelada.");
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("Error: El ID debe ser un número valido.");
+        } catch (Exception e) {
+            System.err.println("Error al recuperar usuario: " + e.getMessage());
+        }
+    }
 
     /**
      * Opción 6: Crear Credencial de Acceso (sin asociar a usuario).
@@ -443,10 +478,6 @@ public class MenuHandler {
      */
     public void eliminarCredencialPorId() {
         try {
-            System.out.println("--- ADVERTENCIA ---");
-            System.out.println("Esta operación solo elimina la credencial, no el usuario.");
-            System.out.println("Si un usuario está asociado, la base de datos quedará INCONSISTENTE.");
-            System.out.println("La forma SEGURA de eliminar es la Opción 4 (Eliminar Usuario).");
             System.out.print("ID de la credencial a eliminar: ");
             long id = Long.parseLong(scanner.nextLine());
 
@@ -461,6 +492,34 @@ public class MenuHandler {
             System.err.println("Error: El ID debe ser un número.");
         } catch (Exception e) {
             System.err.println("Error al eliminar credencial: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Opción 12: Recuperar Credencial por ID (Operación autónoma).
+     *
+     * Nota: Esta operación es autónoma y no recupera al usuario asociado.
+     * Generalmente, la Opción 6 (Recuperar Usuario) es la preferida.
+     */
+    public void recuperarCredencialPorId() {
+        try {
+            System.out.print("ID de la credencial a recuperar: ");
+            long id = Long.parseLong(scanner.nextLine());
+            
+            // No podemos verificar con getById si la credencial está eliminada.
+            // Confiamos en que el servicio maneje el caso de ID inexistente.
+
+            System.out.print("¿Seguro que desea recuperar la credencial con ID " + id + "? (s/n): ");
+            if (scanner.nextLine().equalsIgnoreCase("s")) {
+                credencialAccesoService.recuperar(id);
+                System.out.println("Credencial recuperada exitosamente.");
+            } else {
+                System.out.println("Operación cancelada.");
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("Error: El ID debe ser un número.");
+        } catch (Exception e) {
+            System.err.println("Error al recuperar credencial: " + e.getMessage());
         }
     }
 
