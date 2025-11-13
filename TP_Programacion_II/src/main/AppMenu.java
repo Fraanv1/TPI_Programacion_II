@@ -15,7 +15,7 @@ import service.UsuarioService;
  * @author soilu
  */
 public class AppMenu {
-    /**
+/**
      * Scanner único compartido por toda la aplicación.
      * IMPORTANTE: Solo debe haber UNA instancia de Scanner(System.in).
      * Múltiples instancias causan problemas de buffering de entrada.
@@ -39,16 +39,16 @@ public class AppMenu {
      *
      * Flujo de inicialización:
      * 1. Crea Scanner único para toda la aplicación
-     * 2. Crea cadena de dependencias (DAOs → Services) mediante createPersonaService()
-     * 3. Crea MenuHandler con Scanner y PersonaService
+     * 2. Crea cadena de dependencias (DAOs → Services) mediante createUsuarioService()
+     * 3. Crea MenuHandler con Scanner y UsuarioService
      * 4. Setea running=true para iniciar el loop
      *
      * Patrón de inyección de dependencias (DI) manual:
-     * - DomicilioDAO (sin dependencias)
-     * - PersonaDAO (depende de DomicilioDAO)
-     * - DomicilioServiceImpl (depende de DomicilioDAO)
-     * - PersonaServiceImpl (depende de PersonaDAO y DomicilioServiceImpl)
-     * - MenuHandler (depende de Scanner y PersonaServiceImpl)
+     * - CredencialAccesoDAO (sin dependencias)
+     * - UsuarioDAO (sin dependencias)
+     * - CredencialAccesoService (depende de CredencialAccesoDAO y UsuarioDAO)
+     * - UsuarioService (depende de UsuarioDAO y CredencialAccesoService)
+     * - MenuHandler (depende de Scanner y UsuarioService)
      *
      * Esta inicialización garantiza que todas las dependencias estén correctamente conectadas.
      */
@@ -91,16 +91,17 @@ public class AppMenu {
      * Cerrar Scanner(System.in) cierra System.in para toda la aplicación.
      */
     public void run() {
-        while (running) {
-            try {
-                MenuDisplay.mostrarMenuPrincipal();
-                int opcion = Integer.parseInt(scanner.nextLine());
-                processOption(opcion);
-            } catch (NumberFormatException e) {
-                System.out.println("Entrada invalida. Por favor, ingrese un numero.");
+        try (scanner) {
+            while (running) {
+                try {
+                    MenuDisplay.mostrarMenuPrincipal();
+                    int opcion = Integer.parseInt(scanner.nextLine());
+                    processOption(opcion);
+                } catch (NumberFormatException e) {
+                    System.out.println("Entrada invalida. Por favor, ingrese un numero.");
+                }
             }
         }
-        scanner.close();
     }
 
     /**
@@ -111,17 +112,20 @@ public class AppMenu {
      * - No requiere break (cada caso es independiente)
      * - Permite bloques con {} para múltiples statements
      *
-     * Mapeo de opciones (corresponde a MenuDisplay):
-     * 1  → Crear persona (con domicilio opcional)
-     * 2  → Listar personas (todas o filtradas)
-     * 3  → Actualizar persona
-     * 4  → Eliminar persona (soft delete)
-     * 5  → Crear domicilio independiente
-     * 6  → Listar domicilios
-     * 7  → Actualizar domicilio por ID (afecta a todas las personas que lo comparten)
-     * 8  → Eliminar domicilio por ID (PELIGROSO - puede dejar FKs huérfanas)
-     * 9  → Actualizar domicilio de una persona (afecta a todas las personas que lo comparten)
-     * 10 → Eliminar domicilio de una persona (SEGURO - actualiza FK primero)
+     * Mapeo de opciones (corresponde a MenuDisplay y el switch):
+     * 1  → Crear usuario
+     * 2  → Listar usuarios
+     * 3  → Buscar usuario
+     * 4  → Actualizar usuario
+     * 5  → Eliminar usuario (soft delete)
+     * 6  → Recuperar usuario
+     * 7  → Crear credencial de acceso
+     * 8  → Listar credenciales
+     * 9  → Buscar credencial por ID
+     * 10 → Actualizar credencial por ID
+     * 11 → Eliminar credencial por ID
+     * 12 → Recuperar credencial por ID
+     * 13 → Actualizar credencial por usuario
      * 0  → Salir (setea running=false para terminar el loop)
      *
      * Opción inválida: Muestra mensaje y continúa el loop.
@@ -159,31 +163,31 @@ public class AppMenu {
      * Implementa inyección de dependencias manual.
      *
      * Orden de creación (bottom-up desde la capa más baja):
-     * 1. DomicilioDAO: Sin dependencias, acceso directo a BD
-     * 2. PersonaDAO: Depende de DomicilioDAO (inyectado en constructor)
-     * 3. DomicilioServiceImpl: Depende de DomicilioDAO
-     * 4. PersonaServiceImpl: Depende de PersonaDAO y DomicilioServiceImpl
+     * 1. CredencialAccesoDAO: Sin dependencias
+     * 2. UsuarioDAO: Sin dependencias
+     * 3. CredencialAccesoService: Depende de CredencialAccesoDAO y UsuarioDAO
+     * 4. UsuarioService: Depende de UsuarioDAO y CredencialAccesoService
      *
      * Arquitectura resultante (4 capas):
      * Main (AppMenu, MenuHandler)
      *   ↓
-     * Service (PersonaServiceImpl, DomicilioServiceImpl)
+     * Service (UsuarioService, CredencialAccesoService)
      *   ↓
-     * DAO (PersonaDAO, DomicilioDAO)
+     * DAO (UsuarioDAO, CredencialAccesoDAO)
      *   ↓
-     * Models (Persona, Domicilio, Base)
+     * Models (Usuario, CredencialAcceso, Base)
      *
-     * ¿Por qué PersonaDAO necesita DomicilioDAO?
-     * - Actualmente NO lo usa (inyección preparada para futuras operaciones)
-     * - Podría usarse para operaciones transaccionales coordinadas
+     * ¿Por qué CredencialAccesoService necesita UsuarioDAO?
+     * - Para validar/asociar usuarios al gestionar credenciales.
+     * - Para operaciones transaccionales coordinadas (ej. buscar usuario antes de crear credencial)
      *
-     * ¿Por qué PersonaService necesita DomicilioService?
-     * - Para insertar/actualizar domicilios al crear/actualizar personas
-     * - Para eliminar domicilios de forma segura (eliminarDomicilioDePersona)
+     * ¿Por qué UsuarioService necesita CredencialAccesoService?
+     * - Para insertar/actualizar/eliminar credenciales al crear/actualizar/eliminar usuarios.
+     * - Para gestionar el ciclo de vida de la credencial junto con el usuario.
      *
      * Patrón: Factory Method para construcción de dependencias
      *
-     * @return PersonaServiceImpl completamente inicializado con todas sus dependencias
+     * @return UsuarioService completamente inicializado con todas sus dependencias
      */
     private UsuarioService createUsuarioService() {
         CredencialAccesoDAO credencialDAO = new CredencialAccesoDAO();

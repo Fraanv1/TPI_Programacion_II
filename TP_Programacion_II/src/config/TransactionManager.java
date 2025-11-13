@@ -57,6 +57,7 @@ public class TransactionManager implements AutoCloseable {
         public void rollback() {
             if (conn != null && transactionActive) {
                 try {
+                    System.out.println("Error durante la transacción, realizando rollback...");
                     conn.rollback();
                     transactionActive = false;
                 } catch (SQLException e) {

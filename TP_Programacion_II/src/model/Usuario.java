@@ -13,15 +13,18 @@ import java.time.LocalDateTime;
 public class Usuario extends Base {
     private String username;
     private String email;
-    private Boolean activo;
+    private boolean activo;
     private java.time.LocalDateTime fechaRegistro;
     private CredencialAcceso credencial;
     
+    // Constructor vacio
     public Usuario() {
-        super(false);
+        super();
+        this.fechaRegistro = LocalDateTime.now();
     }
 
-    public Usuario(Long id, String username, String email, Boolean activo, CredencialAcceso credencial) {
+    // Constructor completo
+    public Usuario(Long id, String username, String email, boolean activo, CredencialAcceso credencial) {
         super(id, false);
         this.username = username;
         this.email = email;
@@ -34,7 +37,7 @@ public class Usuario extends Base {
     // (ademas de eliminado = false y la fecha de registro, que tienen metodos default en SQL
     // pero por comodidad los ponemos también acá sin que el usuario los ingrese)
     public Usuario(String username, String email, CredencialAcceso credencial) {
-        super(false);
+        super();
         this.username = username;
         this.email = email;
         this.fechaRegistro = LocalDateTime.now();
@@ -57,11 +60,11 @@ public class Usuario extends Base {
         this.email = email;
     }
 
-    public Boolean isActivo() {
+    public boolean isActivo() {
         return activo;
     }
 
-    public void setActivo(Boolean activo) {
+    public void setActivo(boolean activo) {
         this.activo = activo;
     }
 

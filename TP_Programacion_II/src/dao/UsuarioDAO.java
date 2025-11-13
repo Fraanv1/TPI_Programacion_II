@@ -596,8 +596,10 @@ public Usuario buscarPorCredencialIdEnCualquierEstado(long credencialId) throws 
         usuario.setEmail(rs.getString("email"));
         usuario.setActivo(rs.getBoolean("activo"));
         usuario.setFechaRegistro(rs.getObject("fechaRegistro", LocalDateTime.class));
-        usuario.setEliminado(rs.getBoolean("eliminado")); // Lo usaremos para verificar en CredencialAccesoService si se puede o no eliminar una credencial
-
+        usuario.setEliminado(rs.getBoolean("eliminado")); 
+        // Lo usaremos para verificar en CredencialAccesoService si se puede o no eliminar una credencial
+        // Y también para recuperar un usuario y su credencial si están eliminados.
+        
         long credencialAccesoId = rs.getLong("credencial_id");
         if (!rs.wasNull()) { // Si credencial_id es un valor real (no NULL)
             CredencialAcceso credencial = new CredencialAcceso();
