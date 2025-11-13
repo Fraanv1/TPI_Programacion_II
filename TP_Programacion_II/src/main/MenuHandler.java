@@ -468,9 +468,9 @@ public class MenuHandler {
 
     
     /**
-     * Opción 11: Eliminar Credencial por ID (PELIGROSO - soft delete directo).
+     * Opción 11: Eliminar Credencial por ID (soft delete directo).
      *
-     * ⚠️ ADVERTENCIA: Esta operación es un soft delete de la credencial.
+     * Esta operación es un soft delete de la credencial.
      * Si un Usuario está usando esta credencial, quedará en un estado
      * inconsistente (apuntando a una credencial eliminada).
      *

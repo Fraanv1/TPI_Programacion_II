@@ -14,13 +14,13 @@ public class CredencialAcceso extends Base {
     private String hashPassword;
     private String salt;
     private java.time.LocalDateTime ultimoCambio;
-    private Boolean requireReset;
+    private boolean requireReset;
 
     public CredencialAcceso() {
-        super(false);
+        super();
     }
 
-    public CredencialAcceso(Long id, String hashPassword, String salt, Boolean requireReset) {
+    public CredencialAcceso(Long id, String hashPassword, String salt, boolean requireReset) {
         super(id, false);
         this.hashPassword = hashPassword;
         this.salt = salt;
@@ -32,7 +32,7 @@ public class CredencialAcceso extends Base {
     // (ademas de eliminado = false y el último cambio, que tienen metodos default en SQL
     // pero por comodidad los ponemos también acá sin que el usuario los ingrese)
     public CredencialAcceso(String hashPassword) {
-        super(false);
+        super();
         this.hashPassword = hashPassword;
         this.ultimoCambio = LocalDateTime.now();
     }
@@ -61,11 +61,11 @@ public class CredencialAcceso extends Base {
         this.ultimoCambio = ultimoCambio;
     }
 
-    public Boolean getRequireReset() {
+    public boolean getRequireReset() {
         return requireReset;
     }
 
-    public void setRequireReset(Boolean requireReset) {
+    public void setRequireReset(boolean requireReset) {
         this.requireReset = requireReset;
     }
 

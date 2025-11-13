@@ -10,19 +10,15 @@ package model;
  */
 public class Base {
     private Long id;
-    private Boolean eliminado;
+    private boolean eliminado = false;  // Valor por defecto, para no tener que repetirlo en todos los modelos
 
-    public Base(Long id, Boolean eliminado) {
+    // Constructor completo
+    public Base(Long id, boolean eliminado) {
         this.id = id;
         this.eliminado = eliminado;
     }
 
-    public Base(Boolean eliminado) {
-        this.eliminado = eliminado;
-    }
-
-    
-    
+    // Constructor vacio
     public Base() {
     }
     
@@ -34,14 +30,11 @@ public class Base {
         this.id = id;
     }
 
-    public Boolean isEliminado() {
+    public boolean isEliminado() {
         return eliminado;
     }
 
-    public void setEliminado(Boolean eliminado) {
+    public void setEliminado(boolean eliminado) {
         this.eliminado = eliminado;
     }
-    
-    
-    
 }

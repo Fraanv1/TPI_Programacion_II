@@ -10,7 +10,7 @@ package main;
  */
 public class MenuDisplay {
     public static void mostrarMenuPrincipal() {
-        System.out.println("\n========= MENU =========");
+        System.out.println("\n=========================== MENU ===========================");
         System.out.println("1. Crear usuario");
         System.out.println("2. Listar usuarios");
         System.out.println("3. Buscar usuario");
