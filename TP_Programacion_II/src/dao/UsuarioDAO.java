@@ -345,7 +345,6 @@ public class UsuarioDAO implements GenericDAO<Usuario> {
         return usuarios;
     }
 
-// Agregá este método a UsuarioDAO.java
 /**
  * Busca un usuario por el ID de su credencial, CUALQUIER sea su estado (activo o eliminado).
  * Usado por CredencialAccesoService para verificar si una credencial está en uso.
