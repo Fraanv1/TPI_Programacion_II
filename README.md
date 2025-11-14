@@ -89,7 +89,7 @@ El proyecto está estructurado en capas, asegurando la separación de responsabi
 1.  Verifique que el driver MySQL esté agregado como librería del proyecto.
 2.  Ejecute la clase:
     ```java
-    src/main/AppMenu.java
+    src/main/Main.java
     ```
 3.  La aplicación se iniciará en consola, mostrando el menú CRUD interactivo.
 

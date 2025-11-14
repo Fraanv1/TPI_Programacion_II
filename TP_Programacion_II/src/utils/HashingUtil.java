@@ -7,7 +7,8 @@ import java.util.Base64;
 /**
  * Utilidad simple para hashear contraseñas con Salt.
  * Usa solo librerías nativas de Java (SHA-256 y SecureRandom).
- * Ideal para proyectos académicos donde no se quieren dependencias externas.
+ * Este hasheo no es ideal para apps reales, donde se necesita otros tipos de hasheos mas seguros (Como "Argon2id")
+ * Pero lo usarémos para demostración academica de un hasheo.
  */
 public class HashingUtil {
 
@@ -44,7 +45,7 @@ public class HashingUtil {
             return Base64.getEncoder().encodeToString(hashBytes);
             
         } catch (Exception e) {
-            // En una app real, nunca deberíamos llegar aquí si SHA-256 existe
+            // En una app real nunca deberíamos de llegar acá si SHA-256 existe
             throw new RuntimeException("Error al hashear la contraseña. Mensaje de error: " + e.getMessage());
         }
     }
