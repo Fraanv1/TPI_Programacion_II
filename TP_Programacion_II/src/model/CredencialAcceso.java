@@ -61,7 +61,7 @@ public class CredencialAcceso extends Base {
         this.ultimoCambio = ultimoCambio;
     }
 
-    public boolean getRequireReset() {
+    public boolean isRequireReset() {
         return requireReset;
     }
 

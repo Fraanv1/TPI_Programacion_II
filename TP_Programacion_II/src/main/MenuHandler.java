@@ -636,7 +636,7 @@ public class MenuHandler {
         // Si la respuesta fue "n", no hacemos nada
         // El objeto 'cred' mantiene su hash y salt originales
 
-        System.out.print("¿Requiere reseteo? (s/n) (actual: " + cred.getRequireReset() + "): ");
+        System.out.print("¿Requiere reseteo? (s/n) (actual: " + cred.isRequireReset() + "): ");
         String resetStr = scanner.nextLine().trim();
 
         if (!resetStr.isEmpty()) {
@@ -673,7 +673,7 @@ public class MenuHandler {
         System.out.println("  Hash: " + c.getHashPassword());
         System.out.println("  Salt: " + c.getSalt());
         System.out.println("  Último Cambio: " + c.getUltimoCambio());
-        System.out.println("  Requiere Reset: " + c.getRequireReset());
+        System.out.println("  Requiere Reset: " + c.isRequireReset());
         System.out.println("  Eliminada: " + c.isEliminado());
 
     }

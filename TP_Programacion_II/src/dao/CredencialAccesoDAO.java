@@ -150,7 +150,7 @@ public class CredencialAccesoDAO implements GenericDAO<CredencialAcceso> {
             stmt.setString(2, credencial.getSalt());
             // Usar setObject para tipos java.time (LocalDateTime -> DATETIME)
             stmt.setObject(3, credencial.getUltimoCambio());
-            stmt.setBoolean(4, credencial.getRequireReset());
+            stmt.setBoolean(4, credencial.isRequireReset());
             stmt.setLong(5, credencial.getId()); // ID va al final para el WHERE
 
             int rowsAffected = stmt.executeUpdate();
@@ -175,7 +175,7 @@ public class CredencialAccesoDAO implements GenericDAO<CredencialAcceso> {
             stmt.setString(1, credencial.getHashPassword());
             stmt.setString(2, credencial.getSalt());
             stmt.setObject(3, credencial.getUltimoCambio());
-            stmt.setBoolean(4, credencial.getRequireReset());
+            stmt.setBoolean(4, credencial.isRequireReset());
             stmt.setLong(5, credencial.getId());
 
             int rowsAffected = stmt.executeUpdate();
@@ -344,7 +344,7 @@ public class CredencialAccesoDAO implements GenericDAO<CredencialAcceso> {
         stmt.setString(1, credencial.getHashPassword());
         stmt.setString(2, credencial.getSalt());
         stmt.setObject(3, credencial.getUltimoCambio());
-        stmt.setBoolean(4, credencial.getRequireReset());
+        stmt.setBoolean(4, credencial.isRequireReset());
     }
 
     /**
