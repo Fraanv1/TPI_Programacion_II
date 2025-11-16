@@ -119,13 +119,10 @@ public class AppMenu {
      * 4  → Actualizar usuario
      * 5  → Eliminar usuario (soft delete)
      * 6  → Recuperar usuario
-     * 7  → Crear credencial de acceso
-     * 8  → Listar credenciales
-     * 9  → Buscar credencial por ID
-     * 10 → Actualizar credencial por ID
-     * 11 → Eliminar credencial por ID
-     * 12 → Recuperar credencial por ID
-     * 13 → Actualizar credencial por usuario
+     * 7  → Listar credenciales
+     * 8  → Buscar credencial por ID
+     * 9 → Actualizar credencial por ID
+     * 10 → Actualizar credencial por usuario
      * 0  → Salir (setea running=false para terminar el loop)
      *
      * Opción inválida: Muestra mensaje y continúa el loop.
@@ -143,13 +140,10 @@ public class AppMenu {
             case 4 -> menuHandler.actualizarUsuario();
             case 5 -> menuHandler.eliminarUsuario();
             case 6 -> menuHandler.recuperarUsuario();
-            case 7 -> menuHandler.crearCredencialAcceso();
-            case 8 -> menuHandler.listarCredenciales();
-            case 9 -> menuHandler.buscarCredencialPorId();
-            case 10 -> menuHandler.actualizarCredencialPorId();
-            case 11 -> menuHandler.eliminarCredencialPorId();
-            case 12 -> menuHandler.recuperarCredencialPorId();
-            case 13 -> menuHandler.actualizarCredencialPorUsuario();
+            case 7 -> menuHandler.listarCredenciales();
+            case 8 -> menuHandler.buscarCredencialPorId();
+            case 9 -> menuHandler.actualizarCredencialPorId();
+            case 10 -> menuHandler.actualizarCredencialPorUsuario();
             case 0 -> {
                 System.out.println("Saliendo...");
                 running = false;
@@ -176,14 +170,6 @@ public class AppMenu {
      * DAO (UsuarioDAO, CredencialAccesoDAO)
      *   ↓
      * Models (Usuario, CredencialAcceso, Base)
-     *
-     * ¿Por qué CredencialAccesoService necesita UsuarioDAO?
-     * - Para validar/asociar usuarios al gestionar credenciales.
-     * - Para operaciones transaccionales coordinadas (ej. buscar usuario antes de crear credencial)
-     *
-     * ¿Por qué UsuarioService necesita CredencialAccesoService?
-     * - Para insertar/actualizar/eliminar credenciales al crear/actualizar/eliminar usuarios.
-     * - Para gestionar el ciclo de vida de la credencial junto con el usuario.
      *
      * Patrón: Factory Method para construcción de dependencias
      *
