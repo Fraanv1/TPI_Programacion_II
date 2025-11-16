@@ -90,8 +90,15 @@ public class MenuHandler {
             System.out.println("--- Crear Nuevo Usuario ---");
             System.out.print("Username: ");
             String username = scanner.nextLine().trim();
-            System.out.print("Email: ");
-            String email = scanner.nextLine().trim();
+            
+            String email;
+            do {
+                System.out.print("Email: ");
+                email = scanner.nextLine().trim();
+                if (!validarEmail(email)) {
+                    System.err.println("Error: El formato del email no es válido. Por favor, ingrese un email válido (ejemplo: usuario@dominio.com)");
+                }
+            } while (!validarEmail(email));
             
             System.out.println("...Configurando Credencial...");
             CredencialAcceso credencial = crearCredencial(); // Pide el password
@@ -242,8 +249,12 @@ public class MenuHandler {
             System.out.print("Nuevo email (actual: " + u.getEmail() + "): ");
             String email = scanner.nextLine().trim();
             if (!email.isEmpty()) {
-                u.setEmail(email);
-                actualizar = true;
+                if (!validarEmail(email)) {
+                    System.err.println("Error: El formato del email no es válido. El email no se actualizará.");
+                } else {
+                    u.setEmail(email);
+                    actualizar = true;
+                }
             }
 
             System.out.print("¿Usuario activo? (s/n) (actual: " + u.isActivo() + "): ");
@@ -493,6 +504,19 @@ public class MenuHandler {
     // ==============================
     // MÉTODOS AUXILIARES (PRIVADOS)
     // ==============================
+
+    /**
+     * Valida que el email contenga un @.
+     * 
+     * @param email Email a validar
+     * @return true si contiene un @, false en caso contrario
+     */
+    private boolean validarEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        return email.contains("@");
+    }
 
     /**
      * Método auxiliar privado: Crea un objeto CredencialAcceso pidiendo el password.
