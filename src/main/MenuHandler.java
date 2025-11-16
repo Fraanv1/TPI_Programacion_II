@@ -353,33 +353,10 @@ public class MenuHandler {
             System.err.println("Error al recuperar usuario: " + e.getMessage());
         }
     }
-
+    
+    
     /**
-     * Opción 7: Crear Credencial de Acceso (sin asociar a usuario).
-     *
-     * Flujo:
-     * 1. Llama al método privado crearCredencial() para capturar el password.
-     * 2. Invoca credencialAccesoService.insertar() (el método simple, no transaccional, debido a que no hace falta).
-     * - El servicio se encarga de hashear y poner el timestamp.
-     *
-     * Uso Típico:
-     * - Crear una credencial que (aún) no se asociará a un usuario.
-     */
-    public void crearCredencialAcceso() {
-        try {
-            System.out.println("--- Crear Credencial ---");
-            CredencialAcceso credencial = crearCredencial();
-            
-            credencialAccesoService.insertar(credencial);
-            
-            System.out.println("Credencial creada exitosamente con ID: " + credencial.getId());
-        } catch (Exception e) {
-            System.err.println("Error al crear credencial: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Opción 8: Listar todas las Credenciales activas.
+     * Opción 7: Listar todas las Credenciales activas.
      *
      * Muestra: ID, Último Cambio, Requiere Reset, si está eliminada,
      * el hash y el salt.
@@ -403,7 +380,7 @@ public class MenuHandler {
 
     
     /**
-     * Opción 9: Buscar una Credencial de Acceso por su ID.
+     * Opción 8: Buscar una Credencial de Acceso por su ID.
      *
      * Flujo: 1. Solicita el ID de la credencial. 2. Llama a
      * credencialAccesoService.getById(). 3. Llama a imprimirCredencial() con el
@@ -426,7 +403,7 @@ public class MenuHandler {
     }
     
 /**
-     * Opción 10: Actualizar Credencial por su ID.
+     * Opción 9: Actualizar Credencial por su ID.
      *
      * Flujo:
      * 1. Solicita ID de la credencial y la obtiene.
@@ -464,67 +441,9 @@ public class MenuHandler {
             System.err.println("Error al actualizar credencial: " + e.getMessage());
         }
     }
-
-
     
-    /**
-     * Opción 11: Eliminar Credencial por ID (soft delete directo).
-     *
-     * Esta operación es un soft delete de la credencial.
-     * Si un Usuario está usando esta credencial, quedará en un estado
-     * inconsistente (apuntando a una credencial eliminada).
-     *
-     * La única eliminación SEGURA es la Opción 4 (Eliminar Usuario).
-     */
-    public void eliminarCredencialPorId() {
-        try {
-            System.out.print("ID de la credencial a eliminar: ");
-            long id = Long.parseLong(scanner.nextLine());
-
-            System.out.print("¿Seguro que desea continuar con esta operación peligrosa? (s/n): ");
-            if (scanner.nextLine().equalsIgnoreCase("s")) { // Solo lo borra si el input es "s", cualquier otro cancela el proceso (hecho intencionalmente que no sea solo "n" para cancelar).
-                credencialAccesoService.eliminar(id);
-                System.out.println("Credencial eliminada.");
-            } else {
-                System.out.println("Operación cancelada.");
-            }
-        } catch (NumberFormatException e) {
-            System.err.println("Error: El ID debe ser un número.");
-        } catch (Exception e) {
-            System.err.println("Error al eliminar credencial: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Opción 12: Recuperar Credencial por ID (Operación autónoma).
-     *
-     * Nota: Esta operación es autónoma y no recupera al usuario asociado.
-     * Generalmente, la Opción 6 (Recuperar Usuario) es la preferida.
-     */
-    public void recuperarCredencialPorId() {
-        try {
-            System.out.print("ID de la credencial a recuperar: ");
-            long id = Long.parseLong(scanner.nextLine());
-            
-            // No podemos verificar con getById si la credencial está eliminada.
-            // Confiamos en que el servicio maneje el caso de ID inexistente.
-
-            System.out.print("¿Seguro que desea recuperar la credencial con ID " + id + "? (s/n): ");
-            if (scanner.nextLine().equalsIgnoreCase("s")) {
-                credencialAccesoService.recuperar(id);
-                System.out.println("Credencial recuperada exitosamente.");
-            } else {
-                System.out.println("Operación cancelada.");
-            }
-        } catch (NumberFormatException e) {
-            System.err.println("Error: El ID debe ser un número.");
-        } catch (Exception e) {
-            System.err.println("Error al recuperar credencial: " + e.getMessage());
-        }
-    }
-
 /**
-     * Opción 13: Actualizar Credencial por ID de Usuario.
+     * Opción 10: Actualizar Credencial por ID de Usuario.
      *
      * Flujo:
      * 1. Solicita ID del usuario -> getById(id).
@@ -571,9 +490,9 @@ public class MenuHandler {
         }
     }
 
-    // =========================================================================
+    // ==============================
     // MÉTODOS AUXILIARES (PRIVADOS)
-    // =========================================================================
+    // ==============================
 
     /**
      * Método auxiliar privado: Crea un objeto CredencialAcceso pidiendo el password.
