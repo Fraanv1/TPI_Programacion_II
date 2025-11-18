@@ -40,17 +40,17 @@ El proyecto está estructurado en capas, asegurando la separación de responsabi
 
 ## 📈 Modelo de Datos
 ```
-╔═══════════════════╗             ╔════════════════════╗
+╔═══════════════════╗             ╔═════════════════════╗
 ║     usuarios      ║             ║  credencial_acceso  ║
-╠═══════════════════╣             ╠════════════════════╣
+╠═══════════════════╣             ╠═════════════════════╣
 ║ id (PK)           ║◄────────────║ id (PK)             ║
 ║ username (UNIQUE) ║    (1 → 1)  ║ hashPassword        ║
 ║ email (UNIQUE)    ║             ║ salt                ║
 ║ activo            ║             ║ ultimoCambio        ║
-║ fechaRegistro     ║             ║ requiereReset       ║
+║ fechaRegistro     ║             ║ requireReset       ║
 ║ eliminado         ║             ║ eliminado           ║
 ║ credencial_id (FK, UNIQUE)      ║                     ║
-╚═══════════════════╝             ╚════════════════════╝
+╚═══════════════════╝             ╚═════════════════════╝
 ```
 
 ## 🚀 Requisitos y Ejecución
@@ -71,7 +71,7 @@ El proyecto está estructurado en capas, asegurando la separación de responsabi
     ```sql
     SQL/3_carga_de_datos_de_prueba.sql
     ```
-    para generar datos de prueba.
+    para generar los 1000 datos de prueba en cada tabla.
 
 ### 🔌 2. Configuración de la Conexión
 1.  Edite el archivo:
@@ -96,7 +96,7 @@ El proyecto está estructurado en capas, asegurando la separación de responsabi
 ## 🎥 Video Demostración
 Enlace a la presentación y demostración del equipo:
 
- [Aca va el link del video ]
+ [Video explicativo del Trabajo Final de Programación II - Desiderio Silva Lucas - Gatti Leandro - Vazquez Gabriel Franco](https://drive.google.com/file/d/1dmfrPhLZRReD1zF2v45Kn4_NaiecQoBC/view?usp=sharing)
 
 ## ✨ Características Destacadas
 * **Arquitectura por capas:** Correcta separación de responsabilidades (DAO, Service, Main).
