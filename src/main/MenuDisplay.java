@@ -17,7 +17,7 @@ public class MenuDisplay {
         System.out.println("4. Actualizar usuario");
         System.out.println("5. Eliminar usuario");
         System.out.println("6. Recuperar usuario");
-        System.out.println("7. Listar credenciales de acceso"); // No ponemos crear, eliminar o recuperar credencial de acceso porque queremos una relación 1-1 de composición
+        System.out.println("7. Listar credenciales de acceso"); // No ponemos crear, eliminar o recuperar credencial de acceso de forma indpendiente porque queremos una relación 1-1 de composición
         System.out.println("8. Buscar credencial de acceso por ID");
         System.out.println("9. Actualizar credencial de acceso por ID");
         System.out.println("10. Actualizar credencial de acceso por ID de usuario");

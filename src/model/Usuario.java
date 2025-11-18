@@ -30,7 +30,12 @@ public class Usuario extends Base {
         this.email = email;
         this.activo = activo;
         this.fechaRegistro = LocalDateTime.now();
-        this.credencial = credencial;
+        this.credencial = credencial;                           
+        // Explicación de decisión de diseño: (Solo por si causa dudas)
+        // Aunque no creamos directamente la credencial (con new CredecialAcceso())
+        // en el constructor del usuario (como normalmente pasa en la relación 1-1 de composición),
+        // en la lógica que a la que va a poder acceder el usuario, está relación está clara.
+        // No crear directamente la credencial acá es una decisión a conciencia para tener un mayor control en las capas.
     }
     
    // Solo los parametros not null que no tienen metodo default en SQL 
