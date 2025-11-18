@@ -47,7 +47,7 @@ El proyecto está estructurado en capas, asegurando la separación de responsabi
 ║ username (UNIQUE) ║    (1 → 1)  ║ hashPassword        ║
 ║ email (UNIQUE)    ║             ║ salt                ║
 ║ activo            ║             ║ ultimoCambio        ║
-║ fechaRegistro     ║             ║ requireReset       ║
+║ fechaRegistro     ║             ║ requireReset        ║
 ║ eliminado         ║             ║ eliminado           ║
 ║ credencial_id (FK, UNIQUE)      ║                     ║
 ╚═══════════════════╝             ╚═════════════════════╝
